@@ -49,6 +49,9 @@ def misconfig_tools(eng, owner: str = "leash-recon-scout"):
         path: str = Field(default="/", description="Path to fetch and inspect headers on, e.g. /")
 
     async def securityheadersprobe(args: SecurityHeadersProbeInput) -> str:
+        halted = await eng.refuse_if_halted("security_headers_probe")
+        if halted:
+            return halted
         path = args.path if args.path.startswith("/") else "/" + args.path
         url = eng.base_url + path
         try:
