@@ -42,6 +42,25 @@ class Engagement:
     def record_finding(self, **finding) -> None:
         self.findings.append(finding)
 
+    async def halt(self, reason: str = "operator kill-switch") -> int:
+        """Engage the kill-switch: record it and stop all further offensive tools.
+
+        The flag is enforced *in-process* by every target-touching tool (see
+        ``refuse_if_halted``), so a halt cannot be ignored by a misbehaving
+        agent — it is not a polite request. Idempotent: a second halt re-logs.
+        """
+        self.halted = True
+        return await self.log("kill_switch", reason=reason, halted=True)
+
+    async def refuse_if_halted(self, tool: str) -> Optional[str]:
+        """If halted, audit the refused attempt and return the refusal message;
+        otherwise return ``None`` so the caller proceeds. Offensive tools call
+        this first, making the kill-switch a hard, recorded gate."""
+        if not self.halted:
+            return None
+        await self.log("blocked_halted", tool=tool)
+        return "HALTED: engagement stopped by kill-switch — no further actions permitted."
+
 
 def open_engagement(
     engagement_id: str,
