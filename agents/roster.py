@@ -7,7 +7,7 @@ coordinate through the room while their custom tools do the governed work.
 """
 from __future__ import annotations
 
-from agents.agent_tools import auditor_tools, reporter_tools, scope_warden_tools
+from agents.agent_tools import auditor_tools, commander_tools, reporter_tools, scope_warden_tools
 from agents.base_agent import build_agent
 from tools.misconfig_tools import misconfig_tools
 from tools.recon_tools import recon_tools
