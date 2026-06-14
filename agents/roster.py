@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from agents.agent_tools import auditor_tools, reporter_tools, scope_warden_tools
 from agents.base_agent import build_agent
+from tools.misconfig_tools import misconfig_tools
 from tools.recon_tools import recon_tools
 from tools.sqli_tools import sqli_tools
 
