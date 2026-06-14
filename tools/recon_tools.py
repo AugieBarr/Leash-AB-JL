@@ -32,6 +32,9 @@ def recon_tools(eng):
         )
 
     async def httpprobe(args: HttpProbeInput) -> str:
+        halted = await eng.refuse_if_halted("http_probe")
+        if halted:
+            return halted
         path = args.path if args.path.startswith("/") else "/" + args.path
         url = eng.base_url + path
         try:
