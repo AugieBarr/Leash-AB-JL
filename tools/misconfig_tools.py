@@ -91,6 +91,9 @@ def misconfig_tools(eng, owner: str = "leash-recon-scout"):
         """Probe well-known sensitive paths (open directories, admin/version endpoints) that should not be public."""
 
     async def exposureprobe(args: ExposureProbeInput) -> str:
+        halted = await eng.refuse_if_halted("exposure_probe")
+        if halted:
+            return halted
         exposures = []
         async with httpx.AsyncClient(timeout=10.0) as client:
             for path, label in _EXPOSURE_CANDIDATES:
