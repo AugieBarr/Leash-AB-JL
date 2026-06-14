@@ -136,23 +136,63 @@ def reporter_tools(eng):
     class RenderReportInput(BaseModel):
         """Render the final pentest report from the recorded findings and the sealed audit chain."""
 
+    _SEV_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
+
     async def renderreport(args: RenderReportInput) -> str:
+        findings = sorted(
+            eng.findings, key=lambda f: _SEV_ORDER.get(str(f.get("severity", "info")).lower(), 5)
+        )
+        counts: dict[str, int] = {}
+        for f in findings:
+            sev = str(f.get("severity", "info")).lower()
+            counts[sev] = counts.get(sev, 0) + 1
+        rollup = ", ".join(f"{counts[s]} {s}" for s in sorted(counts, key=lambda s: _SEV_ORDER.get(s, 5))) or "none"
+        pubkey_b64 = base64.b64encode(eng.ledger.public_key_bytes()).decode("ascii")
+        generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ")
+
         lines = [
             f"# Leash Pentest Report — {eng.engagement_id}",
-            f"Target: {eng.target_host}:{eng.target_port}",
-            f"Audit chain tail: {eng.ledger.tail_hash_hex}",
+            "",
+            f"- **Target:** {eng.target_host}:{eng.target_port} (authorized lab target)",
+            f"- **Generated:** {generated}",
+            f"- **Engagement status:** {'HALTED by kill-switch' if eng.halted else 'completed'}",
+            "",
+            "## Executive summary",
+            "",
+            f"{len(findings)} finding(s) recorded — {rollup}. Every action below is bound into a "
+            "tamper-evident, Ed25519-signed audit chain; the attestation at the foot of this report "
+            "lets any third party verify it offline without trusting this run.",
             "",
             "## Findings",
+            "",
         ]
-        if not eng.findings:
-            lines.append("- (none recorded)")
-        for i, f in enumerate(eng.findings, 1):
-            lines.append(f"{i}. **{f.get('type', 'finding')}** — {f.get('endpoint', '')} "
-                         f"[{f.get('severity', 'info')}] {f.get('evidence', '')}".rstrip())
+        if not findings:
+            lines.append("_No findings recorded._")
+        else:
+            lines.append("| # | Severity | Type | Endpoint | Evidence |")
+            lines.append("|---|---|---|---|---|")
+            for i, f in enumerate(findings, 1):
+                lines.append(
+                    f"| {i} | {f.get('severity', 'info')} | {f.get('type', 'finding')} "
+                    f"| `{f.get('endpoint', '')}` | {f.get('evidence', '')} |"
+                )
+
+        lines += [
+            "",
+            "## Audit attestation",
+            "",
+            f"- **Events in chain:** {eng.ledger.head.seq}",
+            f"- **Chain tail (SHA-256):** `{eng.ledger.tail_hash_hex}`",
+            f"- **Ed25519 public key (base64):** `{pubkey_b64}`",
+            "- **Verify offline:** `python -m governance.verify <engagement>_bundle.tar.gz`",
+            "",
+            "_The public key above is the one sealed into the bundle; a passing verification proves "
+            "no event was added, removed, or altered after the fact._",
+        ]
         report = "\n".join(lines)
         report_path = eng.ledger.dir / "report.md"
         report_path.write_text(report + "\n")
-        await eng.log("report_rendered", findings=len(eng.findings), path=str(report_path.name))
+        await eng.log("report_rendered", findings=len(findings), path=str(report_path.name))
         return report
 
     return [(RenderReportInput, renderreport)]
