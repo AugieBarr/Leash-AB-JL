@@ -50,6 +50,16 @@ async def _wait_ready(base_url: str, tries: int = 30) -> bool:
 
 
 async def main() -> int:
+    # Start from a clean slate so the demo is idempotent — the ledger replays and
+    # *appends* on open, so a stale dir would accumulate events across runs. This
+    # dir is gitignored runtime output, regenerated every run.
+    import shutil
+    from pathlib import Path
+
+    demo_dir = Path("engagements") / "offline-demo"
+    if demo_dir.exists():
+        shutil.rmtree(demo_dir)
+
     eng = open_engagement("offline-demo", "localhost", 3000)
     print(f"[*] Engagement {eng.engagement_id} -> {eng.base_url}")
     if not await _wait_ready(eng.base_url):
