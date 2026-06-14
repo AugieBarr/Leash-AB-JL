@@ -125,6 +125,13 @@ async def main() -> int:
     print(f"\n[Auditor] sealed bundle: {bundle}")
     print(f"[Auditor] verify: {result.detail}")
     print(f"[Auditor] findings: {len(eng.findings)} | chain tail {eng.ledger.tail_hash_hex[:16]}…")
+
+    # Reporter writes the deliverable, citing the sealed chain (matches the bundle).
+    render = _handler(reporter_tools, eng, "RenderReportInput")
+    render_model = _model(reporter_tools, eng, "RenderReportInput")
+    await render(render_model())
+    print(f"[Reporter] wrote {eng.ledger.dir / 'report.md'} ({len(eng.findings)} findings)")
+
     print(f"\nVerify it yourself:  python -m governance.verify {bundle}")
     return 0 if result.ok else 1
 
