@@ -1,17 +1,41 @@
-"""Custom tools for the governance agents (ScopeWarden, Auditor, Reporter).
+"""Custom tools for the governance agents (Commander, ScopeWarden, Auditor, Reporter).
 
-These act on the shared Engagement: issuing restricted capabilities, sealing and
-verifying the audit chain, and rendering the final report. Like all custom
-tools, handlers receive only their validated input and return a string; Band
-coordination happens via the platform tools the LLM calls separately.
+These act on the shared Engagement: engaging the kill-switch, issuing restricted
+capabilities, sealing and verifying the audit chain, and rendering the final
+report. Like all custom tools, handlers receive only their validated input and
+return a string; Band coordination happens via the platform tools the LLM calls
+separately.
 """
 from __future__ import annotations
+
+import base64
+from datetime import datetime, timezone
 
 from pydantic import BaseModel, Field
 
 from governance.bundle import export_bundle
 from governance.capability import ScopeSpec, issue_capability
 from governance.scope_guard import parse_target
+
+
+def commander_tools(eng):
+    class IssueKillSwitchInput(BaseModel):
+        """Engage the engagement kill-switch: immediately stop all offensive tools and record the halt. Use the moment the operator says "halt", or on any out-of-scope or destructive risk."""
+
+        reason: str = Field(
+            default="operator kill-switch",
+            description="Why the engagement is being halted (recorded to the audit chain)",
+        )
+
+    async def issuekillswitch(args: IssueKillSwitchInput) -> str:
+        seq = await eng.halt(args.reason)
+        return (
+            f"KILL-SWITCH ENGAGED (audit seq={seq}): {args.reason}. Every offensive tool is "
+            f"now refused in-process and the refusal is logged. Complete the eject by removing "
+            f"each specialist from the room (thenvoi_remove_participant)."
+        )
+
+    return [(IssueKillSwitchInput, issuekillswitch)]
 
 
 def scope_warden_tools(eng):
