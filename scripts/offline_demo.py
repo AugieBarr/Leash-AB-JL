@@ -21,6 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import httpx  # noqa: E402
 
+from agents.agent_tools import reporter_tools  # noqa: E402
 from governance.bundle import export_bundle, verify_bundle  # noqa: E402
 from governance.capability import ScopeSpec, issue_capability  # noqa: E402
 from swarm.engagement import open_engagement  # noqa: E402
