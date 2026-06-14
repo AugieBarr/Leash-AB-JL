@@ -57,6 +57,9 @@ def recon_tools(eng):
         """Crawl the target's main page and key API routes to map the attack surface; returns discovered endpoints."""
 
     async def crawltarget(args: CrawlTargetInput) -> str:
+        halted = await eng.refuse_if_halted("crawl_target")
+        if halted:
+            return halted
         found = []
         async with httpx.AsyncClient(timeout=10.0) as client:
             for path in _RECON_CANDIDATES:
