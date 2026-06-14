@@ -94,9 +94,12 @@ These worker jobs are coroutines, not 1000 live WebSocket agents — the worker 
 
 Day-3 build. **Verified end-to-end against live OWASP Juice Shop:**
 
-- Governance layer complete — audit ledger (Ed25519 hash-chain), scope guard, capability ACLs, sealed bundle + offline verify CLI. **23/23 tests green** incl. tamper-detection.
-- All **six Band agents register and connect concurrently** (6/6), each wired with role prompts + custom tools (verified by `swarm/launcher.py --boot-check`).
+- Governance layer complete — audit ledger (Ed25519 hash-chain), scope guard, capability ACLs, sealed bundle + offline verify CLI. **26/26 tests green** (incl. tamper-detection + the cap-never-exceeded scale invariant).
+- All **six Band agents register and connect concurrently** (6/6), each wired with role prompts + custom tools (verified by `swarm/launcher.py --boot-check` and `scale_test/connect_harness.py`).
+- **Band message-delivery confirmed end-to-end:** a kickoff `@mention` posted by one agent was queued by Band and delivered to exactly the right agent (the Commander) on connect, which woke and attempted to reason — the *only* thing standing between here and a live run is `ANTHROPIC_API_KEY`.
 - The full **governed pipeline runs deterministically** ([`scripts/offline_demo.py`](scripts/offline_demo.py)): recon maps the surface → ScopeWarden issues a `/rest/products`-scoped capability → operator approval → SQLi **confirmed** (`q=apple'` → HTTP 500) → out-of-scope path **blocked by the scope guard** → Auditor **seals a tamper-evident bundle** that verifies offline.
+- **Scale layer measured** ([`scale_test/`](scale_test/)): 1000-job fan-out holds the concurrency cap (peak 16/16), 200 real scope-guarded probes against the live target, 6/6 live Band WebSockets held — every number stated with what it does and does not prove.
+- The Band **case-room seeder** ([`swarm/seed.py`](swarm/seed.py)) creates the room and adds all six agents in one command (verified live: 6/6 land, Commander as owner).
 
 Reproduction — with Juice Shop on `localhost:3000`:
 
