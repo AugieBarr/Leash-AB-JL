@@ -88,7 +88,7 @@ def build_swarm(eng):
         build_agent("leash-commander", COMMANDER, []),
         build_agent("leash-scope-warden", SCOPE_WARDEN, scope_warden_tools(eng)),
         build_agent("leash-auditor", AUDITOR, auditor_tools(eng)),
-        build_agent("leash-recon-scout", RECON_SCOUT, recon_tools(eng)),
+        build_agent("leash-recon-scout", RECON_SCOUT, recon_tools(eng) + misconfig_tools(eng)),
         build_agent("leash-sqli-hunter", SQLI_HUNTER, sqli_tools(eng)),
         build_agent("leash-reporter", REPORTER, reporter_tools(eng)),
     ]
