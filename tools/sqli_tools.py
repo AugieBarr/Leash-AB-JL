@@ -28,6 +28,9 @@ def sqli_tools(eng):
         )
 
     async def manualsqliprobe(args: ManualSqliProbeInput) -> str:
+        halted = await eng.refuse_if_halted("manual_sqli_probe")
+        if halted:
+            return halted
         base = args.path if args.path.startswith("/") else "/" + args.path
         benign_url = eng.base_url + base + "apple"
         probe_url = eng.base_url + base + "apple'"
