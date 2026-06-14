@@ -74,6 +74,9 @@ def sqli_tools(eng):
         param: str = Field(default="q", description="Injectable parameter name")
 
     async def runsqlmap(args: RunSqlmapInput) -> str:
+        halted = await eng.refuse_if_halted("run_sqlmap")
+        if halted:
+            return halted
         url = eng.base_url + (args.path if args.path.startswith("/") else "/" + args.path)
         if not tool_available("sqlmap"):
             try:
