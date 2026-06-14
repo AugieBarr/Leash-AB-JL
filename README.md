@@ -86,7 +86,20 @@ The live demo runs ~10–30 **real** Band agents. The "1000-agent" headline refe
 
 ## Status
 
-Day-3 build, in progress. The audit ledger and tamper test are green; agents, scope guard, capability ACLs, and the bundle sealer are landing next. See the build plan for the day-by-day to submission (Jun 19).
+Day-3 build. **Verified end-to-end against live OWASP Juice Shop:**
+
+- Governance layer complete — audit ledger (Ed25519 hash-chain), scope guard, capability ACLs, sealed bundle + offline verify CLI. **23/23 tests green** incl. tamper-detection.
+- All **six Band agents register and connect concurrently** (6/6), each wired with role prompts + custom tools (verified by `swarm/launcher.py --boot-check`).
+- The full **governed pipeline runs deterministically** ([`scripts/offline_demo.py`](scripts/offline_demo.py)): recon maps the surface → ScopeWarden issues a `/rest/products`-scoped capability → operator approval → SQLi **confirmed** (`q=apple'` → HTTP 500) → out-of-scope path **blocked by the scope guard** → Auditor **seals a tamper-evident bundle** that verifies offline.
+
+Reproduction — with Juice Shop on `localhost:3000`:
+
+```bash
+python scripts/offline_demo.py
+python -m governance.verify engagements/offline-demo/offline-demo_bundle.tar.gz
+```
+
+The remaining piece is the live LLM-driven swarm narrating this flow through a Band room (`python -m swarm.launcher`), which needs `ANTHROPIC_API_KEY` in `.env`. The day-by-day to submission (Jun 19) lives in [`docs/BUILD_PLAN.md`](docs/BUILD_PLAN.md).
 
 ## License
 
