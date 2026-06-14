@@ -69,11 +69,35 @@ async def main() -> int:
     print("\n[Recon Scout] crawl_target:")
     print("  " + (await crawl(crawl_model())).replace("\n", "\n  "))
 
+    # Recon Scout also audits security posture (OWASP A05/A01) under its engagement-wide cap.
+    headers = _handler(misconfig_tools, eng, "SecurityHeadersProbeInput")
+    headers_model = _model(misconfig_tools, eng, "SecurityHeadersProbeInput")
+    print("\n[Recon Scout] security_headers_probe:")
+    print("  " + (await headers(headers_model(path="/"))).replace("\n", "\n  "))
+
+    exposure = _handler(misconfig_tools, eng, "ExposureProbeInput")
+    exposure_model = _model(misconfig_tools, eng, "ExposureProbeInput")
+    print("\n[Recon Scout] exposure_probe:")
+    print("  " + (await exposure(exposure_model())).replace("\n", "\n  "))
+
     # Commander recruits the SQLi specialist; ScopeWarden scopes it to /rest/products only.
     eng.capabilities["leash-sqli-hunter"] = issue_capability(
         eng.root_cap, ScopeSpec.of(["localhost"], [3000], ["/rest/products"])
     )
     print("\n[ScopeWarden] issued sqli-hunter capability (localhost:3000, /rest/products)")
+
+    # Cross-specialist scoping, demonstrated: the SQLi hunter's /rest/products
+    # capability fails CLOSED if it reaches for /ftp — the scope guard, not trust.
+    sqli_exposure = next(
+        h for m, h in misconfig_tools(eng, owner="leash-sqli-hunter")
+        if m.__name__ == "ExposureProbeInput"
+    )
+    sqli_exposure_model = next(
+        m for m, _ in misconfig_tools(eng, owner="leash-sqli-hunter")
+        if m.__name__ == "ExposureProbeInput"
+    )
+    print("\n[Scope guard] SQLi hunter (scoped to /rest/products) attempts exposure_probe:")
+    print("  " + await sqli_exposure(sqli_exposure_model()))
 
     # Human approval gate (the operator approves in the room; here we record the decision).
     await eng.log("approval", operator="demo-operator", action="manual_sqli_probe", decision="approved")
