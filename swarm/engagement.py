@@ -25,6 +25,7 @@ class Engagement:
     capabilities: dict[str, Capability] = field(default_factory=dict)
     findings: list[dict] = field(default_factory=list)
     approvals: set[str] = field(default_factory=set)
+    halted: bool = False
 
     @property
     def base_url(self) -> str:
