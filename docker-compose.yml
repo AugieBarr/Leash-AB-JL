@@ -1,0 +1,9 @@
+# Deliberately-vulnerable target for authorized, lab-scoped testing only.
+# OWASP Juice Shop — https://owasp.org/www-project-juice-shop/
+services:
+  juice-shop:
+    image: bkimminich/juice-shop:latest
+    container_name: leash-juice-shop
+    ports:
+      - "3000:3000"
+    restart: unless-stopped

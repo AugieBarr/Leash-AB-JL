@@ -1,0 +1,24 @@
+# Secrets — never commit
+.env
+agent_config.yaml
+*.key
+engagement_*.key
+
+# Runtime engagement data (audit ledgers, sealed bundles)
+engagements/*
+!engagements/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+uv.lock.bak
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,28 @@
+# Copy to agent_config.yaml and fill in real UUIDs + API keys from app.band.ai.
+# Each agent is registered once at app.band.ai (New Agent -> Remote/External).
+# Register ALL agents under ONE Band account so they are siblings and can
+# recruit each other without contact requests. agent_config.yaml is gitignored.
+
+leash-commander:
+  agent_id: "<uuid-from-band>"
+  api_key: "<api-key-from-band>"
+
+leash-scope-warden:
+  agent_id: "<uuid-from-band>"
+  api_key: "<api-key-from-band>"
+
+leash-auditor:
+  agent_id: "<uuid-from-band>"
+  api_key: "<api-key-from-band>"
+
+leash-recon-scout:
+  agent_id: "<uuid-from-band>"
+  api_key: "<api-key-from-band>"
+
+leash-sqli-hunter:
+  agent_id: "<uuid-from-band>"
+  api_key: "<api-key-from-band>"
+
+leash-reporter:
+  agent_id: "<uuid-from-band>"
+  api_key: "<api-key-from-band>"
