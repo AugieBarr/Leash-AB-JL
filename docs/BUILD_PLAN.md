@@ -73,9 +73,9 @@ A public MIT repo + 3-min demo where a tiered agent swarm coordinates through a 
 | Agent | Band id | Tier/Model | Role | Custom tools (CLI wrapped) |
 |---|---|---|---|---|
 | Commander | `leash-commander` | Sonnet | orchestrate, recruit, kill-switch | `open_case_room`, `close_case_room`, `issue_kill_switch` |
-| ScopeWarden | `leash-scope-warden` | Sonnet | capability issuance/revocation | `issue_capability`, `check_capability`, `revoke_capability` |
-| Auditor | `leash-auditor` | Sonnet | chain writer + bundle sealer | `append_event`, `verify_chain`, `export_bundle` |
-| Recon Scout | `leash-recon-scout` | Sonnet | surface mapping | `http_probe`, `crawl_target`, `js_enum` |
+| ScopeWarden | `leash-scope-warden` | Sonnet | capability issuance | `issue_capability`, `check_capability` · `revoke_capability` *(stretch)* |
+| Auditor | `leash-auditor` | Sonnet | chain writer + bundle sealer | `append_event`, `verify_chain`, `seal_bundle` |
+| Recon Scout | `leash-recon-scout` | Sonnet | surface mapping | `http_probe`, `crawl_target`, `security_headers_probe`, `exposure_probe` · `js_enum` *(stretch)* |
 | SQLi Hunter | `leash-sqli-hunter` | Sonnet | SQL injection | `run_sqlmap`, `manual_sqli_probe` |
 | Reporter | `leash-reporter` | Sonnet | report synthesis | `render_findings_report`, `read_audit_bundle` |
 | XSS Hunter *(stretch)* | `leash-xss-hunter` | Sonnet | XSS | `run_dalfox`, `manual_xss_probe` |
