@@ -57,3 +57,26 @@ async def test_export_refuses_tampered_ledger(tmp_path):
 
     with pytest.raises(ValueError):
         export_bundle("demo3", root=tmp_path)
+
+
+async def test_tampered_manifest_tail_fails(tmp_path):
+    # Leave the signed ndjson untouched but forge the manifest's advertised tail.
+    # verify_bundle must catch the mismatch — a reader trusting manifest fields
+    # cannot be handed an unverified value.
+    await _seed(tmp_path, "demo4")
+    bundle = export_bundle("demo4", root=tmp_path)
+
+    with tarfile.open(bundle, "r:gz") as tar:
+        members = {m.name: tar.extractfile(m).read() for m in tar.getmembers()}
+    manifest = json.loads(members["manifest.json"])
+    manifest["chain_tail_hash"] = "00" * 32  # forge the advertised tail
+    members["manifest.json"] = json.dumps(manifest, indent=2).encode()
+    with tarfile.open(bundle, "w:gz") as tar:
+        for name, data in members.items():
+            info = tarfile.TarInfo(name=name)
+            info.size = len(data)
+            tar.addfile(info, io.BytesIO(data))
+
+    result = verify_bundle(bundle)
+    assert not result.ok
+    assert "tail mismatch" in result.detail
