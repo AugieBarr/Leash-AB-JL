@@ -44,6 +44,23 @@ async def _boot_check(eng) -> None:
         await agent.stop()
 
 
+async def _watch_and_eject(eng) -> None:
+    """Operator KILL button → in-process halt → Band-side room eject. Lives in the
+    launcher (not control_channel) so the offline control channel stays Band-free."""
+    from swarm.control_channel import watch_halt
+
+    await watch_halt(eng)  # returns once a halt decision lands
+    if not eng.band_room_id:
+        return
+    try:
+        from swarm.kill_switch import eject_room
+
+        removed = await eject_room(eng.band_room_id)
+        await eng.log("ejected", room=eng.band_room_id, removed=removed, via="control_center")
+    except Exception as e:  # best-effort: the in-process halt already refused every tool
+        await eng.log("error", tool="control_center_eject", room=eng.band_room_id, error=str(e))
+
+
 async def _run(eng) -> None:
     if os.getenv("LEASH_ADAPTER", "claude_sdk").lower() == "anthropic" and not os.getenv("ANTHROPIC_API_KEY"):
         # Only the raw-key adapter needs ANTHROPIC_API_KEY. The default claude_sdk
@@ -55,11 +72,23 @@ async def _run(eng) -> None:
             "(claude_sdk adapter — no key needed). Use --boot-check to test connectivity."
         )
     agents = build_swarm(eng)
+    if not eng.band_room_id:
+        print(
+            "[WARNING] No Band room bound (--seed not passed): recruit-on-discovery is "
+            "disabled. Pass --seed --brain-only for the full Band coordination story."
+        )
     print(
         f"Leash swarm: {len(agents)} agents online for engagement {eng.engagement_id} "
         f"(target {eng.base_url}). Mention @leash-commander in the room to begin."
     )
-    await run_swarm(agents)
+    # The Control Center's KILL button drops a halt decision file; this watcher engages
+    # the in-process kill-switch the instant it lands AND ejects the swarm Band-side, so
+    # the operator's halt is deterministic code on both paths — never LLM-dependent.
+    halt_watch = asyncio.create_task(_watch_and_eject(eng))
+    try:
+        await run_swarm(agents)
+    finally:
+        halt_watch.cancel()
 
 
 async def main() -> None:

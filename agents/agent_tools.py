@@ -29,11 +29,27 @@ def commander_tools(eng):
 
     async def issuekillswitch(args: IssueKillSwitchInput) -> str:
         seq = await eng.halt(args.reason)
-        return (
+        msg = (
             f"KILL-SWITCH ENGAGED (audit seq={seq}): {args.reason}. Every offensive tool is "
-            f"now refused in-process and the refusal is logged. Complete the eject by removing "
-            f"each specialist from the room (band_remove_participant)."
+            f"now refused in-process and the refusal is logged."
         )
+        if not eng.band_room_id:
+            return msg + " (No Band room bound — in-process halt only.)"
+        # Eject the swarm Band-side in code, not by asking the LLM to call a platform tool —
+        # so the room visibly disbands as a deterministic consequence of the kill-switch.
+        # Lazy import so governance-only contexts (and tests) need no Band SDK.
+        from swarm.kill_switch import eject_room
+
+        try:
+            removed = await eject_room(eng.band_room_id)
+        except Exception as e:
+            await eng.log("error", tool="issue_kill_switch", room=eng.band_room_id, error=str(e))
+            return (
+                msg + f" Band-side eject FAILED ({e}); remove specialists manually: "
+                f"python -m swarm.kill_switch --room {eng.band_room_id}."
+            )
+        await eng.log("ejected", room=eng.band_room_id, removed=removed)
+        return msg + f" Ejected {len(removed)} specialist(s) from the room: {', '.join(removed) or '(none)'}."
 
     class RecruitSpecialistInput(BaseModel):
         """Bring a specialist agent into the Band room on discovery — e.g. recruit the SQLi Hunter once recon surfaces an injectable endpoint. The specialist starts receiving room @mentions immediately, and the recruitment is recorded to the audit chain."""
