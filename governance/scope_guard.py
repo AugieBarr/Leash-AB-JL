@@ -29,8 +29,12 @@ def parse_target(url: str) -> Target:
         port = parts.port
     else:
         port = 443 if parts.scheme == "https" else 80
-    path = (parts.path or "/").replace("*", "")
-    if not path:
+    # Normalize away '..' and duplicate slashes BEFORE the prefix check, so a
+    # narrowed path cap cannot be escaped by /rest/products/../admin (which the
+    # target server would itself resolve to /admin). posixpath.normpath leaves
+    # percent-encoded bytes untouched — only the server decodes those.
+    path = posixpath.normpath((parts.path or "/").replace("*", ""))
+    if not path.startswith("/"):
         path = "/"
     return Target(host=host, port=port, path=path)
 
