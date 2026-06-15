@@ -67,7 +67,15 @@ def _host_match(globs, host: str) -> bool:
 
 
 def _path_match(prefixes, path: str) -> bool:
-    return any(pref in ("/", "*") or path.startswith(pref) for pref in prefixes)
+    # Boundary-aware prefix match: a cap for "/rest/products" must match
+    # "/rest/products" and "/rest/products/search" but NOT "/rest/products-evil"
+    # or "/rest/productsX" — a bare str.startswith would leak those.
+    def _one(pref: str, path: str) -> bool:
+        if pref in ("/", "*"):
+            return True
+        return path == pref or path.startswith(pref.rstrip("/") + "/")
+
+    return any(_one(pref, path) for pref in prefixes)
 
 
 def _empty(scope: ScopeSpec) -> bool:
