@@ -7,8 +7,6 @@ the deterministic, fast confirmation used for reliable live demos;
 """
 from __future__ import annotations
 
-import json
-
 import httpx
 from pydantic import BaseModel, Field
 
