@@ -76,5 +76,7 @@ def test_dot_dot_traversal_blocked():
 
 
 def test_parse_target_normalizes_dot_dot():
-    assert parse_target("http://localhost:3000/rest/products/../admin").path == "/admin"
+    # /rest/products/.. -> /rest, then /admin -> /rest/admin (still outside a /rest/products cap)
+    assert parse_target("http://localhost:3000/rest/products/../admin").path == "/rest/admin"
+    assert parse_target("http://localhost:3000/rest/products/../../admin").path == "/admin"
     assert parse_target("http://localhost:3000/a//b/./c").path == "/a/b/c"
