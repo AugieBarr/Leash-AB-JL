@@ -60,6 +60,15 @@ async def _run(eng) -> None:
 async def main() -> None:
     load_dotenv()
     args = _parse_args()
+    # Start each run from a clean ledger so a back-to-back demo does not append to
+    # (and inflate) a stale chain. --resume keeps an existing ledger to continue it.
+    if not args.resume:
+        import shutil
+        from pathlib import Path
+
+        eng_dir = Path(os.getenv("LEASH_ENGAGEMENTS", "engagements")) / args.engagement_id
+        if eng_dir.exists():
+            shutil.rmtree(eng_dir)
     eng = open_engagement(args.engagement_id, args.host, args.port)
     await eng.log("engagement_open", target=f"{args.host}:{args.port}", engagement_id=args.engagement_id)
     if args.boot_check:
