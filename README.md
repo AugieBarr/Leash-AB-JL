@@ -6,6 +6,8 @@ Autonomous web-app penetration testing where a tiered swarm of agents coordinate
 
 > Built for the **Band of Agents Hackathon** (lablab.ai, Jun 2026) by Team Roan — Josh Langsam ([@joshualangsam-a11y](https://github.com/joshualangsam-a11y)) & Augie Barreirinhas ([@AugieBarr](https://github.com/AugieBarr)).
 
+![The Leash Control Center — the operator-approved human gate, the live six-agent roster, a severity-ranked findings feed, and the Governance Holds panel showing the scope guard refusing an off-target reach, all over a tamper-evident Ed25519 chain re-verified the instant each event lands.](docs/img/control-center.png)
+
 ---
 
 ## Why Leash
@@ -84,6 +86,8 @@ python scripts/control_demo.py
 python scripts/tamper_demo.py                       # flips one signed event → "TAMPERED — bad signature at seq N"
 python -m viewer.viewer --engagement tamper-demo    # the viewer flips VERIFIED → TAMPERED and lights that event red
 ```
+
+![One already-signed event was altered to erase the SQL-injection finding. The badge flips to TAMPERED, event #6 is lit red, and the chain names the exact sequence — caught with the public key alone.](docs/img/tamper-evident.png)
 
 Detection needs only the public key shipped in the bundle — never the private key. That is the whole trust thesis, made visible.
 
