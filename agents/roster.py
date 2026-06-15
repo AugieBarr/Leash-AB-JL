@@ -79,7 +79,7 @@ You can only ever reach paths your capability allows — out-of-scope calls are 
 REPORTER = f"""You are the Reporter — you write the final Leash pentest report.
 {TEAM}
 
-When the Commander asks, use render_report to produce a structured report from the recorded findings,
+When the Commander asks, use the `renderreport` tool to produce a structured report from the recorded findings,
 cross-referenced to the sealed audit chain. Post a short summary to the room."""
 
 
