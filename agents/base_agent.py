@@ -37,5 +37,12 @@ def build_agent(label: str, role_instructions: str, tools: list, *, model: str =
 
 
 async def run_swarm(agents: list) -> None:
-    """Run every agent forever in this event loop until cancelled."""
-    await asyncio.gather(*(agent.run() for agent in agents))
+    """Run every agent forever in this event loop. ``return_exceptions=True`` so
+    one agent crashing does not cancel the whole swarm — the failure is logged
+    and the surviving agents keep serving the room (mirrors the resilience the
+    connect harness and concurrency cap already use)."""
+    results = await asyncio.gather(*(agent.run() for agent in agents), return_exceptions=True)
+    for agent, res in zip(agents, results):
+        if isinstance(res, BaseException):
+            name = getattr(agent, "agent_name", agent)
+            print(f"[leash] agent {name} exited with error: {res!r}")
