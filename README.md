@@ -45,9 +45,9 @@ Band's `@mention` routing means a 30-agent room never floods every agent — eac
 The differentiator is implemented first and runs entirely offline (no Band, no API keys):
 
 - [`governance/audit_ledger.py`](governance/audit_ledger.py) — Ed25519-signed, SHA-256 hash-chained, append-only ledger. Chain hash: `SHA256(seq_be64 ‖ kind ‖ hash_prev ‖ payload ‖ sig)`. Any post-hoc edit breaks verification.
-- `governance/scope_guard.py` *(in progress)* — fail-closed allowlist; off-target calls never execute.
-- `governance/capability.py` *(in progress)* — restricted child capabilities (parent ∩ restriction; empty → deny-all).
-- `governance/bundle.py` *(in progress)* — seals the verified ledger + public key into a portable, third-party-verifiable bundle.
+- [`governance/scope_guard.py`](governance/scope_guard.py) — fail-closed allowlist; off-target calls never execute. Path-boundary aware and `..`-normalized, so a `/rest/products` cap can't be escaped by `/rest/products-evil` or `/rest/products/../admin`.
+- [`governance/capability.py`](governance/capability.py) — restricted child capabilities (parent ∩ restriction; empty → deny-all).
+- [`governance/bundle.py`](governance/bundle.py) — seals the verified ledger + public key into a portable, third-party-verifiable bundle (cross-checks the manifest's tail hash + event count against the re-derived chain).
 
 Quick proof that tampering is detectable:
 
