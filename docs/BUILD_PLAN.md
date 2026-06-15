@@ -103,7 +103,7 @@ genesis hash_prev = b"\x00" * 32
 
 **`bundle.py`** — port of `polis_code_memory/attested_store.ex` seal. `export_bundle(id)`: runs `verify_chain()` (refuses to seal a tampered chain) → writes manifest `{id, target, times, chain_tail_hash, event_count, findings}` → tars NDJSON + manifest + pubkey → emits `.sha256`. Offline CLI `python -m leash.governance.verify <bundle.tar.gz>` → `Chain OK — N events, no tampering`.
 
-**Human approval gate** *(as built: enforced at the LLM/prompt level, not a code function)* — pure Band messaging, no polling API: the SQLi Hunter's role prompt requires it to post `@operator` + the exact action and wait for an "approved"/"halt" reply before calling any exploit tool; "halt" → Commander `issuekillswitch` (hard in-process stop) + remove participants. The reply is captured in the room transcript; the decision is cross-logged to the chain.
+**Human approval gate** *(now enforced in code, not on trust)* — the offensive tools call `enforce_gate` (`swarm/control_channel.py`), which opens a gate in the operator's Control Center and BLOCKS until the operator clicks APPROVE; a HALT or a timeout makes the tool refuse in-process and engages the kill-switch (it never defaults open). The SQLi Hunter's prompt still narrates the request in-room (`@operator` + the exact action), but the gate no longer depends on the model honouring it. Each approval is bound into the tamper-evident chain as a signed `approval` event (who approved what), and `watch_halt` runs alongside the live swarm so the Control Center kill-switch is live throughout.
 
 ---
 

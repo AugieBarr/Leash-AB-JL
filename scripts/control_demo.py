@@ -32,7 +32,7 @@ import httpx  # noqa: E402
 from agents.agent_tools import reporter_tools  # noqa: E402
 from governance.bundle import export_bundle, verify_bundle  # noqa: E402
 from governance.capability import ScopeSpec, issue_capability  # noqa: E402
-from swarm.control_channel import await_decision, request_approval, watch_halt  # noqa: E402
+from swarm.control_channel import watch_halt  # noqa: E402
 from swarm.engagement import open_engagement  # noqa: E402
 from tools.misconfig_tools import misconfig_tools  # noqa: E402
 from tools.recon_tools import recon_tools  # noqa: E402
@@ -124,24 +124,14 @@ async def main() -> int:
         print("[ScopeWarden] issued sqli-hunter capability (localhost:3000, /rest/products)")
         await asyncio.sleep(pace)
 
-        # THE GATE — block on the operator's browser decision.
+        # THE GATE — now enforced inside the offensive tool itself. Calling
+        # manual_sqli_probe opens the Control Center gate and BLOCKS until the
+        # operator decides; a halt or a timeout makes the tool refuse in code and
+        # the engagement stops. (The approval is recorded into the signed chain by
+        # the gate, so who-approved-what is bound into the audit trail.)
         endpoint = "/rest/products/search?q="
-        gate = await request_approval(eng, tool="manual_sqli_probe", endpoint=endpoint,
-                                      detail="UNION-based SQL injection probe on the product search parameter")
-        print(f"\n[GATE OPEN] waiting for operator decision in the Control Center (gate {gate}) …")
-        decision = await await_decision(eng, gate, timeout=args.gate_timeout)
-        print(f"[GATE] operator decision: {decision.upper()}")
-
-        if decision != "approve":
-            if not eng.halted:
-                await eng.halt("operator halted at approval gate")
-            return await _finish(eng)
-
-        # Record the governed approval (the sole writer logs it into the chain),
-        # then run the now-authorized probe.
-        await eng.log("approval", action="manual_sqli_probe", decision="approved",
-                      operator="operator", gate_id=gate)
-        probe_model, probe = _find(sqli_tools, eng, "ManualSqliProbeInput")
+        probe_model, probe = _find(sqli_tools, eng, "ManualSqliProbeInput", gate_timeout=args.gate_timeout)
+        print("\n[GATE OPEN] manual_sqli_probe needs approval — APPROVE or HALT in the Control Center …")
         print("[SQLi Hunter] manual_sqli_probe …")
         print("  " + (await probe(probe_model(path=endpoint))).replace("\n", "\n  "))
         await asyncio.sleep(pace)

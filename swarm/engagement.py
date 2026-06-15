@@ -13,6 +13,7 @@ from typing import Optional
 
 from governance.audit_ledger import AuditLedger
 from governance.capability import Capability, ScopeSpec, root_capability
+from governance.scope_guard import parse_target
 
 
 @dataclass
@@ -60,6 +61,34 @@ class Engagement:
             return None
         await self.log("blocked_halted", tool=tool)
         return "HALTED: engagement stopped by kill-switch — no further actions permitted."
+
+    # ----- human approval gate -------------------------------------------
+    def approval_key(self, path: str) -> str:
+        """Normalize an endpoint path to the canonical key approvals are recorded
+        under, so ``record_approval`` and ``is_approved`` always agree regardless
+        of query string, ``*`` markers, or ``..`` (reuses the scope guard's own
+        parser). e.g. ``/rest/products/search?q=`` -> ``/rest/products/search``."""
+        p = path if path.startswith("/") else "/" + path
+        return parse_target(self.base_url + p).path
+
+    async def record_approval(
+        self, path: str, *, gate_id: str = "", operator: str = "operator", tool: str = ""
+    ) -> int:
+        """Record a human approval for ``path`` — both in queryable state (so a
+        tool can refuse without it) and as a signed ``approval`` event in the
+        tamper-evident chain (so *who approved what* is bound into the audit
+        trail). Returns the event seq."""
+        key = self.approval_key(path)
+        self.approvals.add(key)
+        return await self.log(
+            "approval", endpoint=key, gate_id=gate_id, operator=operator, tool=tool, decision="approved"
+        )
+
+    def is_approved(self, path: str) -> bool:
+        """Has the operator approved exploitation of this endpoint? The offensive
+        tools check this in code — the gate is not merely something the agent is
+        prompted to honour."""
+        return self.approval_key(path) in self.approvals
 
 
 def open_engagement(

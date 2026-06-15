@@ -107,6 +107,28 @@ async def await_decision(
         await asyncio.sleep(poll)
 
 
+async def enforce_gate(
+    eng, *, tool: str, endpoint: str = "", detail: str = "", timeout: float = 600.0, poll: float = 0.4
+) -> bool:
+    """The human approval gate, enforced in code. Opens a gate, BLOCKS on the
+    operator's Control Center decision, and returns ``True`` only on an explicit
+    ``approve`` for *this* gate — recording the approval into the engagement (and
+    the signed chain) on the way through. Any other outcome (``halt`` or timeout)
+    engages the kill-switch and returns ``False``: the gate never defaults open.
+
+    Offensive tools call this before they touch the target, so exploitation
+    cannot proceed without a real operator decision — it is not a behaviour the
+    agent is merely told to follow."""
+    gate = await request_approval(eng, tool=tool, endpoint=endpoint, detail=detail)
+    decision = await await_decision(eng, gate, poll=poll, timeout=timeout)
+    if decision != "approve":
+        if not eng.halted:
+            await eng.halt(f"operator halted at approval gate for {tool}")
+        return False
+    await eng.record_approval(endpoint, gate_id=gate, operator="operator", tool=tool)
+    return True
+
+
 async def watch_halt(eng, *, poll: float = 0.5) -> str:
     """Run alongside a live swarm: poll the decision file and engage the
     kill-switch the moment a ``halt`` lands, so the Control Center's KILL button

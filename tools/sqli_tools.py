@@ -13,11 +13,27 @@ import httpx
 from pydantic import BaseModel, Field
 
 from governance.scope_guard import ScopeViolationError, scope_guard
+from swarm.control_channel import enforce_gate
 from tools._subprocess import ensure_leading_slash, scoped_run, tool_available
 
+_GATE_DENIED = (
+    "BLOCKED: human approval required before exploitation. The operator halted "
+    "or did not approve this action at the Control Center gate."
+)
 
-def sqli_tools(eng):
+
+def sqli_tools(eng, *, gate_timeout: float = 600.0, gate_poll: float = 0.4):
     cap = lambda: eng.cap_for("leash-sqli-hunter")  # noqa: E731 (terse local)
+
+    async def _gate(tool: str, endpoint: str, detail: str) -> bool:
+        """Pass iff the operator has approved this endpoint. If not yet approved,
+        open the Control Center gate and block on their decision. Enforced here in
+        code so the exploit cannot run on the agent's say-so alone."""
+        if eng.is_approved(endpoint):
+            return True
+        return await enforce_gate(
+            eng, tool=tool, endpoint=endpoint, detail=detail, timeout=gate_timeout, poll=gate_poll
+        )
 
     class ManualSqliProbeInput(BaseModel):
         """Deterministically confirm SQL injection on an in-scope endpoint by comparing a benign value to a single-quote probe."""
@@ -32,6 +48,11 @@ def sqli_tools(eng):
         if halted:
             return halted
         base = ensure_leading_slash(args.path)
+        if not await _gate(
+            "manual_sqli_probe", base,
+            "single-quote / UNION SQL injection probe on the product search parameter",
+        ):
+            return _GATE_DENIED
         benign_url = eng.base_url + base + "apple"
         probe_url = eng.base_url + base + "apple'"
         try:
@@ -77,7 +98,10 @@ def sqli_tools(eng):
         halted = await eng.refuse_if_halted("run_sqlmap")
         if halted:
             return halted
-        url = eng.base_url + ensure_leading_slash(args.path)
+        path = ensure_leading_slash(args.path)
+        if not await _gate("run_sqlmap", path, "sqlmap injection enumeration"):
+            return _GATE_DENIED
+        url = eng.base_url + path
         if not tool_available("sqlmap"):
             try:
                 scope_guard(url, cap())

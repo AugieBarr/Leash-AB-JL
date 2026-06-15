@@ -11,12 +11,14 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
 import os
 
 from dotenv import load_dotenv
 
 from agents.base_agent import run_swarm
 from agents.roster import build_swarm
+from swarm.control_channel import watch_halt
 from swarm.engagement import open_engagement
 
 
@@ -55,7 +57,16 @@ async def _run(eng) -> None:
         f"Leash swarm: {len(agents)} agents online for engagement {eng.engagement_id} "
         f"(target {eng.base_url}). Mention @leash-commander in the room to begin."
     )
-    await run_swarm(agents)
+    # The Control Center kill-switch watcher runs for the whole engagement so the
+    # operator can halt the live swarm from the browser at any moment — the same
+    # decision channel the offensive tools' approval gate blocks on.
+    halt_task = asyncio.create_task(watch_halt(eng))
+    try:
+        await run_swarm(agents)
+    finally:
+        halt_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError, Exception):
+            await halt_task
 
 
 async def main() -> None:

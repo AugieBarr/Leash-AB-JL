@@ -100,9 +100,12 @@ async def main() -> int:
     print("\n[Scope guard] SQLi hunter (scoped to /rest/products) attempts exposure_probe:")
     print("  " + await sqli_exposure(sqli_exposure_model()))
 
-    # Human approval gate (the operator approves in the room; here we record the decision).
-    await eng.log("approval", operator="demo-operator", action="manual_sqli_probe", decision="approved")
-    print("[Operator] APPROVED: manual_sqli_probe on /rest/products/search")
+    # Human approval gate — the offensive tool now ENFORCES this in code: without a
+    # recorded approval it would open the Control Center gate and block. Here the
+    # scripted operator pre-approves the exact endpoint so the deterministic demo
+    # proceeds without a human; the approval is bound into the signed chain.
+    await eng.record_approval("/rest/products/search?q=", operator="demo-operator", tool="manual_sqli_probe")
+    print("[Operator] APPROVED (pre-recorded): manual_sqli_probe on /rest/products/search")
 
     probe_model, probe = _find(sqli_tools, eng, "ManualSqliProbeInput")
     print("\n[SQLi Hunter] manual_sqli_probe:")
