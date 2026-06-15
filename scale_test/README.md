@@ -8,7 +8,7 @@ thing and claiming nothing it didn't measure.
 |---|---|---|---|
 | `worker_fanout_bench` | `--workers 1000 --cap 16` | The worker tool-job tier fans out 1000 jobs through the `ConcurrencyCap` without ever exceeding the cap, and every job completes | 1000 jobs ≠ 1000 live WebSocket agents — these are coroutines |
 | `worker_fanout_bench` | `--workers 200 --target http://localhost:3000` | The fan-out + `scope_guard` hold under load against the real target | Same caveat — coroutines, not agents |
-| `connect_harness` | `--hold 60` | Band holds one persistent WebSocket per **registered** agent, from one host, for the full duration | The number connected = agents you registered (6 here), not 30 and not 1000 |
+| `connect_harness` | `--hold N` | Band holds one persistent WebSocket per **registered** agent, from one host, for the full duration | The number connected = agents you registered (6 here), not 30 and not 1000 |
 
 ## Measured (this build, 2026-06-14)
 
