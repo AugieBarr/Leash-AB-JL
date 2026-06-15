@@ -48,6 +48,7 @@
   .stat .v { font-family: var(--font-mono); font-size: 13px; color: var(--text); }
   .stat .v.accent { color: var(--accent); }
   .stat .v.bad { color: var(--bad); }
+  .stat .v.ok { color: var(--ok); }
   .copyable { cursor: pointer; transition: color .2s ease; }
   .copyable:hover { color: var(--accent); }
   .copyable.flash { color: var(--ok) !important; }
@@ -188,6 +189,23 @@
   .vuln .vseq:hover { color: var(--accent); }
   .vuln-empty { padding: 30px 0; text-align: center; color: var(--text-muted); font-family: var(--font-mono); font-size: 12.5px; }
 
+  /* ===== Governance Holds (defenses) ===== */
+  .defenses { display: flex; flex-direction: column; gap: 10px; }
+  .def { display: flex; align-items: flex-start; gap: 14px; padding: 15px 18px; border: 1px solid var(--border);
+    border-left: 3px solid var(--ok); border-radius: var(--radius); background: var(--bg-elevated); animation: vulnIn .5s var(--ease); }
+  .def.kill { border-left-color: var(--bad); }
+  .def .dico { font-family: var(--font-mono); font-size: 9.5px; font-weight: 500; letter-spacing: 0.14em;
+    text-transform: uppercase; padding: 4px 9px; border-radius: 5px; flex-shrink: 0; white-space: nowrap;
+    color: var(--ok); border: 1px solid var(--ok-30); background: var(--ok-08); }
+  .def.kill .dico { color: var(--bad); border: 1px solid var(--bad-30); background: var(--bad-08); }
+  .def .dbody { min-width: 0; flex: 1; }
+  .def .dtype { font-size: 14px; font-weight: 600; color: var(--text); letter-spacing: -0.005em; }
+  .def .dtarget { font-family: var(--font-mono); font-size: 11.5px; color: var(--accent-60); margin-top: 3px; word-break: break-all; }
+  .def .ddetail { font-size: 12.5px; color: var(--text-muted); margin-top: 5px; line-height: 1.6; word-break: break-word; }
+  .def .dseq { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); flex-shrink: 0; cursor: pointer; transition: color .2s ease; }
+  .def .dseq:hover { color: var(--accent); }
+  .def-empty { padding: 30px 0; text-align: center; color: var(--text-muted); font-family: var(--font-mono); font-size: 12.5px; }
+
   /* control bar (audit) */
   .controls { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
   .chips { display: flex; flex-wrap: wrap; gap: 7px; }
@@ -305,6 +323,7 @@
       <span id="badge" class="badge"><span class="pulse"></span> connecting</span>
       <div class="stat"><span class="k">Events</span><span id="count" class="v accent">0</span></div>
       <div class="stat"><span class="k">Vulns</span><span id="vcount" class="v">0</span></div>
+      <div class="stat"><span class="k">Defenses</span><span id="dcount" class="v">0</span></div>
       <div class="stat tailstat"><span class="k">Chain Tail</span><span id="tail" class="v copyable" title="click to copy full hash">—</span></div>
       <button id="follow" class="iconbtn on" title="auto-follow new events">● live</button>
       <button id="help" class="iconbtn" title="keyboard shortcuts">?</button>
@@ -334,7 +353,10 @@
     <div class="sechead"><span class="line"></span><span class="label"><span class="num">02</span>Live Findings</span><span class="grow"></span><span id="vhint" class="hint"></span></div>
     <div id="vulns" class="vulns"><div class="vuln-empty">No vulnerabilities confirmed yet — recon in progress.</div></div>
 
-    <div class="sechead"><span class="line"></span><span class="label"><span class="num">03</span>Audit Chain</span></div>
+    <div class="sechead"><span class="line"></span><span class="label"><span class="num">03</span>Governance Holds</span><span class="grow"></span><span id="dhint" class="hint"></span></div>
+    <div id="defenses" class="defenses"><div class="def-empty">No interventions yet — the leash hasn't had to pull.</div></div>
+
+    <div class="sechead"><span class="line"></span><span class="label"><span class="num">04</span>Audit Chain</span></div>
     <div class="controls">
       <div id="chips" class="chips"></div>
       <div class="search">
@@ -371,7 +393,7 @@
   let ENG = "";
   let es = null, events = [], rows = [], kinds = new Map(), activeKinds = new Set();
   let query = "", follow = true, focusIdx = -1, badSeq = null;
-  let vulns = [], halted = false, lastAgent = null, pendingGate = null, gateBusy = false;
+  let vulns = [], defenses = [], halted = false, lastAgent = null, pendingGate = null, gateBusy = false;
   const agentCount = new Map();
 
   const AGENTS = [
@@ -425,6 +447,33 @@
       for (const e of p.exposures) if (e.status === 200)
         out.push({ sev: "medium", type: "Sensitive Exposure", endpoint: e.path || "", seq: rec.seq,
           evidence: (e.label || "exposure") + " reachable (HTTP 200) — OWASP A01" });
+    return out;
+  }
+
+  // A "governance hold" is the moment the leash actually pulled — a fail-closed
+  // scope block, a denied capability, or the kill-switch firing. These are the
+  // defenses, derived from the same audit stream the findings come from.
+  function deriveDefenses(rec) {
+    const p = parse(rec), tool = p.tool || "", out = [];
+    const scopeCard = (target, detail) => ({ tag: "scope", label: "Scope Guard Block",
+      target: (tool ? tool + " → " : "") + (target || "off-target"), detail: String(detail), seq: rec.seq });
+    if (rec.kind === "error" && p.blocked)
+      out.push(scopeCard(p.path || p.endpoint || p.url, p.blocked));
+    else if (rec.kind === "scope_violation")
+      out.push({ tag: "scope", label: "Off-Target Call Refused",
+        target: p.url || p.path || "", detail: p.reason || "outside engagement scope", seq: rec.seq });
+    else if (rec.kind === "capability_check" && p.allowed === false)
+      out.push({ tag: "scope", label: "Capability Denied",
+        target: p.agent || p.target || "", detail: p.reason || "outside the issued capability", seq: rec.seq });
+    else if (rec.kind === "tool_result" && Array.isArray(p.exposures))
+      // A scoped sweep records each off-capability path inline as {path, blocked}.
+      for (const e of p.exposures) if (e.blocked) out.push(scopeCard(e.path, e.blocked));
+    else if (rec.kind === "kill_switch")
+      out.push({ tag: "kill", label: "Kill Switch Engaged",
+        target: "every offensive tool", detail: p.reason || "operator kill-switch", seq: rec.seq });
+    else if (rec.kind === "blocked_halted")
+      out.push({ tag: "kill", label: "Tool Refused After Halt",
+        target: tool || "offensive tool", detail: "kill-switch engaged — refused in-process", seq: rec.seq });
     return out;
   }
 
@@ -543,6 +592,26 @@
     $("vcount").className = "v" + (vulns.length ? " bad" : "");
     $("vhint").textContent = vulns.length ? vulns.length + " confirmed" : "";
   }
+  function ingestDefenses(rec) {
+    for (const d of deriveDefenses(rec)) {
+      defenses.push(d);
+      const box = $("defenses");
+      const e = box.querySelector(".def-empty"); if (e) e.remove();
+      const card = document.createElement("div");
+      card.className = "def" + (d.tag === "kill" ? " kill" : "");
+      card.innerHTML =
+        '<span class="dico">' + (d.tag === "kill" ? "halt" : "held") + '</span>' +
+        '<div class="dbody"><div class="dtype">' + esc(d.label) + '</div>' +
+        (d.target ? '<div class="dtarget">' + esc(d.target) + '</div>' : '') +
+        '<div class="ddetail">' + esc(d.detail) + '</div></div>' +
+        '<span class="dseq" data-seq="' + d.seq + '" title="jump to the audit event">#' + d.seq + '</span>';
+      box.appendChild(card);
+      card.querySelector(".dseq").addEventListener("click", () => jumpToSeq(d.seq));
+    }
+    animateCount($("dcount"), defenses.length);
+    $("dcount").className = "v" + (defenses.length ? " ok" : "");
+    $("dhint").textContent = defenses.length ? defenses.length + " held" : "";
+  }
   function jumpToSeq(seq) {
     const r = rows.find((x) => +x.dataset.seq === seq);
     if (r) { r.classList.add("open"); r.scrollIntoView({ block: "center", behavior: "smooth" }); }
@@ -652,6 +721,7 @@
     if (agent) { agentCount.set(agent, (agentCount.get(agent) || 0) + 1); lastAgent = agent; }
     renderAuditRow(rec);
     ingestVulns(rec);
+    ingestDefenses(rec);
     updateGate(rec);
     renderRoster();
     renderHaltBanner();
@@ -705,11 +775,13 @@
     if (es) es.close();
     ENG = engagement;
     events = []; rows = []; kinds = new Map(); activeKinds.clear(); query = ""; focusIdx = -1; badSeq = null;
-    vulns = []; halted = false; lastAgent = null; pendingGate = null; gateBusy = false; agentCount.clear();
+    vulns = []; defenses = []; halted = false; lastAgent = null; pendingGate = null; gateBusy = false; agentCount.clear();
     $("q").value = ""; $("eng-name").textContent = engagement; $("eng-target").textContent = "—";
-    $("chips").innerHTML = ""; $("showing").textContent = ""; $("vhint").textContent = "";
+    $("chips").innerHTML = ""; $("showing").textContent = ""; $("vhint").textContent = ""; $("dhint").textContent = "";
     $("count").textContent = "0"; $("vcount").textContent = "0"; $("vcount").className = "v";
+    $("dcount").textContent = "0"; $("dcount").className = "v";
     $("vulns").innerHTML = '<div class="vuln-empty">No vulnerabilities confirmed yet — recon in progress.</div>';
+    $("defenses").innerHTML = '<div class="def-empty">No interventions yet — the leash hasn\'t had to pull.</div>';
     stream.innerHTML = '<div class="empty">waiting for the first event…</div>';
     renderRoster(); renderGate(); renderHaltBanner(); updateCCState();
   }

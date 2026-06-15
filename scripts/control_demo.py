@@ -124,6 +124,18 @@ async def main() -> int:
         print("[ScopeWarden] issued sqli-hunter capability (localhost:3000, /rest/products)")
         await asyncio.sleep(pace)
 
+        probe_model, probe = _find(sqli_tools, eng, "ManualSqliProbeInput")
+
+        # The leash holds. Scoped to /rest/products, the SQLi hunter reaches for
+        # /ftp — and the fail-closed scope guard refuses it before any request is
+        # sent. The refusal is recorded as a governed event (the Defenses panel).
+        print("[SQLi Hunter] manual_sqli_probe /ftp  (out of scope) …")
+        print("  " + (await probe(probe_model(path="/ftp"))))
+        await asyncio.sleep(pace)
+
+        if eng.halted:
+            return await _finish(eng)
+
         # THE GATE — block on the operator's browser decision.
         endpoint = "/rest/products/search?q="
         gate = await request_approval(eng, tool="manual_sqli_probe", endpoint=endpoint,
@@ -138,10 +150,9 @@ async def main() -> int:
             return await _finish(eng)
 
         # Record the governed approval (the sole writer logs it into the chain),
-        # then run the now-authorized probe.
+        # then run the now-authorized, in-scope probe.
         await eng.log("approval", action="manual_sqli_probe", decision="approved",
                       operator="operator", gate_id=gate)
-        probe_model, probe = _find(sqli_tools, eng, "ManualSqliProbeInput")
         print("[SQLi Hunter] manual_sqli_probe …")
         print("  " + (await probe(probe_model(path=endpoint))).replace("\n", "\n  "))
         await asyncio.sleep(pace)
