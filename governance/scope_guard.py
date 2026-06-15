@@ -8,6 +8,7 @@ abort the tool call.
 """
 from __future__ import annotations
 
+import posixpath
 from typing import Optional
 from urllib.parse import urlsplit
 
