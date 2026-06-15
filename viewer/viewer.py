@@ -428,7 +428,13 @@ def _parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = _parse_args()
-    server = ThreadingHTTPServer((args.host, args.port), _Handler)
+    try:
+        server = ThreadingHTTPServer((args.host, args.port), _Handler)
+    except OSError as e:
+        raise SystemExit(
+            f"Could not bind {args.host}:{args.port} ({e.strerror or e}). "
+            f"Another viewer may be running — stop it or pass --port <N>."
+        )
     server.daemon_threads = True
     found = _engagements()
     suffix = f"?engagement={args.engagement}" if args.engagement else ""
