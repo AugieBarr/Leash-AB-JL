@@ -26,6 +26,9 @@ class Engagement:
     findings: list[dict] = field(default_factory=list)
     approvals: set[str] = field(default_factory=set)
     halted: bool = False
+    # Band room this engagement coordinates in (set by the launcher when it seeds).
+    # Lets the Commander's recruit tool add specialists to the right room.
+    band_room_id: str = ""
 
     @property
     def base_url(self) -> str:

@@ -27,6 +27,8 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--port", type=int, default=int(os.getenv("LEASH_TARGET_PORT", "3000")))
     p.add_argument("--boot-check", action="store_true", help="Connect all agents, then exit.")
     p.add_argument("--resume", action="store_true", help="Continue an existing ledger instead of starting fresh.")
+    p.add_argument("--seed", action="store_true", help="Create the Band room (and kickoff) in-process before running, so recruit-on-discovery knows the room id.")
+    p.add_argument("--brain-only", action="store_true", help="With --seed, seed only the brain tier; the Commander recruits specialists on discovery.")
     return p.parse_args()
 
 
@@ -74,6 +76,14 @@ async def main() -> None:
             shutil.rmtree(eng_dir)
     eng = open_engagement(args.engagement_id, args.host, args.port)
     await eng.log("engagement_open", target=f"{args.host}:{args.port}", engagement_id=args.engagement_id)
+    if args.seed:
+        # Seed the room in-process so the Commander's recruit tool has the room id.
+        # --brain-only seeds just the brain tier; the Commander recruits the rest.
+        from swarm.seed import seed_room
+
+        eng.band_room_id = await seed_room(f"{args.host}:{args.port}", brain_only=args.brain_only)
+        await eng.log("room_seeded", room=eng.band_room_id, brain_only=args.brain_only)
+        print(f"Seeded Band room {eng.band_room_id} (brain_only={args.brain_only}).")
     if args.boot_check:
         await _boot_check(eng)
     else:

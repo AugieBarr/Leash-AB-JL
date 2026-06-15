@@ -49,7 +49,14 @@ def _room_id(room) -> str:
     raise RuntimeError(f"could not find room id on {room!r}")
 
 
-async def seed_room(target: str = "localhost:3000", *, kickoff: bool = True) -> str:
+# The persistent "brain" tier seeded at room creation. With ``brain_only=True``
+# the remaining specialists (recon scout, SQLi hunter, reporter) are NOT seeded —
+# the Commander recruits them on discovery, making the tiered recruit-on-discovery
+# story a real code path rather than a no-op against a pre-filled room.
+BRAIN = {"leash-commander", "leash-scope-warden", "leash-auditor"}
+
+
+async def seed_room(target: str = "localhost:3000", *, kickoff: bool = True, brain_only: bool = False) -> str:
     load_dotenv()
     creds = {label: load_agent_config(label) for label in SWARM}
     ids = {label: creds[label][0] for label in SWARM}
@@ -62,7 +69,9 @@ async def seed_room(target: str = "localhost:3000", *, kickoff: bool = True) -> 
 
     for label in SWARM:
         if label == "leash-commander":
-            continue
+            continue  # the Commander is the room creator/owner
+        if brain_only and label not in BRAIN:
+            continue  # specialists are recruited live by the Commander
         await commander.agent_api_participants.add_agent_chat_participant(
             chat_id=room_id,
             participant=ParticipantRequest(participant_id=ids[label], role="member"),
@@ -94,11 +103,13 @@ async def _main() -> None:
     parser = argparse.ArgumentParser(description="Seed a Band case room for a Leash engagement.")
     parser.add_argument("--target", default="localhost:3000")
     parser.add_argument("--no-kickoff", action="store_true", help="Create the room and add agents, but do not post the kickoff message.")
+    parser.add_argument("--brain-only", action="store_true", help="Seed only the brain tier (Commander, ScopeWarden, Auditor); the Commander recruits specialists on discovery.")
     args = parser.parse_args()
 
-    room_id = await seed_room(args.target, kickoff=not args.no_kickoff)
-    print(f"Seeded room {room_id} with {len(SWARM)} agents (target {args.target}).")
-    print(f"Open it at https://app.band.ai/chat to watch the swarm.")
+    room_id = await seed_room(args.target, kickoff=not args.no_kickoff, brain_only=args.brain_only)
+    seeded = len(BRAIN) if args.brain_only else len(SWARM)
+    print(f"Seeded room {room_id} with {seeded} agent(s) (target {args.target}; brain_only={args.brain_only}).")
+    print("Open it at https://app.band.ai/chat to watch the swarm.")
 
 
 if __name__ == "__main__":

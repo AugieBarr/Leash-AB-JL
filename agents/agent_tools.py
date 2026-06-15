@@ -35,7 +35,38 @@ def commander_tools(eng):
             f"each specialist from the room (band_remove_participant)."
         )
 
-    return [(IssueKillSwitchInput, issuekillswitch)]
+    class RecruitSpecialistInput(BaseModel):
+        """Bring a specialist agent into the Band room on discovery — e.g. recruit the SQLi Hunter once recon surfaces an injectable endpoint. The specialist starts receiving room @mentions immediately, and the recruitment is recorded to the audit chain."""
+
+        agent_label: str = Field(
+            description="Specialist to recruit, e.g. leash-recon-scout, leash-sqli-hunter, leash-reporter"
+        )
+
+    async def recruitspecialist(args: RecruitSpecialistInput) -> str:
+        if not eng.band_room_id:
+            return "Cannot recruit: this engagement is not bound to a Band room (launch with --seed)."
+        # Lazy import so governance-only contexts (and tests) need no Band SDK.
+        from band.client.rest import DEFAULT_REQUEST_OPTIONS, ParticipantRequest
+        from band.config import load_agent_config
+
+        from swarm._band_client import band_client
+
+        try:
+            spec_id = load_agent_config(args.agent_label)[0]
+            commander_key = load_agent_config("leash-commander")[1]
+            client = band_client(commander_key)
+            await client.agent_api_participants.add_agent_chat_participant(
+                chat_id=eng.band_room_id,
+                participant=ParticipantRequest(participant_id=spec_id, role="member"),
+                request_options=DEFAULT_REQUEST_OPTIONS,
+            )
+        except Exception as e:
+            await eng.log("error", tool="recruit_specialist", agent=args.agent_label, error=str(e))
+            return f"RECRUIT FAILED for {args.agent_label}: {e}"
+        await eng.log("recruited", agent=args.agent_label, room=eng.band_room_id)
+        return f"Recruited {args.agent_label} into the room — they now receive @mentions and can act."
+
+    return [(IssueKillSwitchInput, issuekillswitch), (RecruitSpecialistInput, recruitspecialist)]
 
 
 def scope_warden_tools(eng):
