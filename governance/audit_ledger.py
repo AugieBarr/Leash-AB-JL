@@ -187,4 +187,6 @@ def verify_ndjson(path: str | os.PathLike, public_key: Ed25519PublicKey) -> Veri
         prev = _chain_hash(seq, kind, hash_prev, payload, sig)
         expected_seq += 1
 
-    return VerifyResult(True, f"Chain OK — {expected_seq} events, no tampering detected")
+    return VerifyResult(
+        True, f"Chain OK — {expected_seq} events, no tampering detected", tail_hash=prev.hex()
+    )
