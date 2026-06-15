@@ -1,8 +1,8 @@
 # Leash 🐕‍🦺
 
-**A governed offensive agent swarm — built on [Band](https://band.ai).**
+**A swarm of offensive-security agents that coordinates through [Band](https://band.ai) — recruiting specialists on discovery, handing off by `@mention`, with a human in the room.**
 
-Autonomous web-app penetration testing where a tiered swarm of agents coordinates *through a Band room*, recruits specialists as it discovers attack surface, **stops at a human approval gate before it exploits anything**, and emits a **tamper-evident, independently-verifiable audit bundle** when the engagement closes.
+Point it at a target and a **Commander agent runs the engagement inside a Band room**: it recruits a Recon Scout, and the moment recon surfaces an attack surface it pulls the matching specialist *into the room live* — every handoff an `@mention`, every agent holding its own seat the human can watch. **Band is the coordination plane.** Because the whole swarm runs *through* it, Leash can wrap that coordination in a **scope leash, a human approval gate, and a tamper-evident audit trail** — which is what makes an autonomous offensive swarm safe to run unsupervised.
 
 > Built for the **Band of Agents Hackathon** (lablab.ai, Jun 2026) by Team Roan — Josh Langsam ([@joshualangsam-a11y](https://github.com/joshualangsam-a11y)) & Augie Barreirinhas ([@AugieBarr](https://github.com/AugieBarr)).
 
@@ -14,7 +14,7 @@ Autonomous web-app penetration testing where a tiered swarm of agents coordinate
 
 Autonomous pentest is already a crowded field — 39+ open-source agents, XBOW topping HackerOne, HexStrike-AI driving 150+ tools. But the field has a hole everyone names and nobody fills: **governance.** XBOW's own CISO calls it a *"chaos phase… we are not ready,"* with agents *"dropping your tables."* The tools optimize for autonomous execution over audit trails or scope enforcement.
 
-Leash is the **governed** swarm — the anti-HexStrike. Band gives it exactly the controls the field lacks:
+Leash is the **governed** swarm — the anti-HexStrike. The bold move is *where* the governance lives: not bolted on after the fact, but **inside the Band room**, as a property of how the agents coordinate. Band gives it exactly the controls the field lacks:
 
 | Field's gap | What Leash does on Band |
 | --- | --- |
