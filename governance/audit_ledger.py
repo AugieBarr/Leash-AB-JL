@@ -22,6 +22,7 @@ import base64
 import hashlib
 import json
 import os
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -135,7 +136,12 @@ class AuditLedger:
     # ----- replay --------------------------------------------------------
     def _replay_tail(self) -> tuple[int, bytes]:
         """Recover ``(next_seq, prev_hash)`` from an existing ledger so a fresh
-        instance resumes the chain instead of resetting it."""
+        instance resumes the chain instead of resetting it.
+
+        Does NOT verify signatures — it recomputes ``chain_hash`` values
+        mechanically to advance the tail pointer. Call ``verify_chain()`` for the
+        full integrity proof.
+        """
         if not self.path.exists():
             return 0, GENESIS
         seq, prev = 0, GENESIS
@@ -159,13 +165,20 @@ class AuditLedger:
         return verify_ndjson(self.path, pk)
 
 
-def verify_ndjson(path: str | os.PathLike, public_key: Ed25519PublicKey) -> VerifyResult:
-    """Walk an NDJSON ledger and confirm sequence order, chain linkage, and
-    every signature. Returns a falsy ``VerifyResult`` on the first violation."""
+def verify_ndjson(
+    source: str | os.PathLike | Iterable[str], public_key: Ed25519PublicKey
+) -> VerifyResult:
+    """Walk an NDJSON ledger and confirm sequence order, chain linkage, and every
+    signature. ``source`` may be a path (read from disk) or an iterable of already
+    in-memory lines. Returns a falsy ``VerifyResult`` on the first violation."""
+    lines = (
+        Path(source).read_text(encoding="utf-8").splitlines()
+        if isinstance(source, (str, os.PathLike))
+        else source
+    )
     prev = GENESIS
     expected_seq = 0
-    text = Path(path).read_text(encoding="utf-8")
-    for line in text.splitlines():
+    for line in lines:
         if not line.strip():
             continue
         rec = json.loads(line)

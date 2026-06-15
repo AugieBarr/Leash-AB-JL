@@ -10,14 +10,7 @@ from band import Agent
 from band.adapters.anthropic import AnthropicAdapter
 from band.config import load_agent_config
 
-SWARM = [
-    "leash-commander",
-    "leash-scope-warden",
-    "leash-auditor",
-    "leash-recon-scout",
-    "leash-sqli-hunter",
-    "leash-reporter",
-]
+from swarm.seed import SWARM  # single source of truth for the agent labels
 
 
 async def connect_one(label: str):

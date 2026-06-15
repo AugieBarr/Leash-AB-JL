@@ -32,7 +32,7 @@ def commander_tools(eng):
         return (
             f"KILL-SWITCH ENGAGED (audit seq={seq}): {args.reason}. Every offensive tool is "
             f"now refused in-process and the refusal is logged. Complete the eject by removing "
-            f"each specialist from the room (thenvoi_remove_participant)."
+            f"each specialist from the room (band_remove_participant)."
         )
 
     return [(IssueKillSwitchInput, issuekillswitch)]

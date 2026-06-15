@@ -14,7 +14,6 @@ import io
 import json
 import os
 import tarfile
-import tempfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -102,13 +101,7 @@ def verify_bundle(bundle_path: str | os.PathLike) -> BundleVerifyResult:
         base64.b64decode(manifest["pubkey_ed25519_b64"])
     )
 
-    tmp = tempfile.NamedTemporaryFile("w", suffix=".ndjson", delete=False)
-    try:
-        tmp.write(ndjson_text)
-        tmp.close()
-        result = verify_ndjson(tmp.name, pubkey)
-    finally:
-        os.unlink(tmp.name)
+    result = verify_ndjson(ndjson_text.splitlines(), pubkey)
 
     if not result.ok:
         return BundleVerifyResult(False, result.detail, manifest)

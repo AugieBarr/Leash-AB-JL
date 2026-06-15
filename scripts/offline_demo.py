@@ -30,12 +30,10 @@ from tools.recon_tools import recon_tools  # noqa: E402
 from tools.sqli_tools import sqli_tools  # noqa: E402
 
 
-def _handler(factory, eng, model_name):
-    return next(h for m, h in factory(eng) if m.__name__ == model_name)
-
-
-def _model(factory, eng, model_name):
-    return next(m for m, _ in factory(eng) if m.__name__ == model_name)
+def _find(factory, eng, model_name, **kw):
+    """Return the (input_model, handler) pair for a tool by its input-model name.
+    Extra kwargs are forwarded to the factory (e.g. owner= for cross-specialist scoping)."""
+    return next((m, h) for m, h in factory(eng, **kw) if m.__name__ == model_name)
 
 
 async def _wait_ready(base_url: str, tries: int = 30) -> bool:
@@ -75,19 +73,16 @@ async def main() -> int:
     )
     print("\n[ScopeWarden] issued recon-scout capability (localhost:3000, /)")
 
-    crawl = _handler(recon_tools, eng, "CrawlTargetInput")
-    crawl_model = _model(recon_tools, eng, "CrawlTargetInput")
+    crawl_model, crawl = _find(recon_tools, eng, "CrawlTargetInput")
     print("\n[Recon Scout] crawl_target:")
     print("  " + (await crawl(crawl_model())).replace("\n", "\n  "))
 
     # Recon Scout also audits security posture (OWASP A05/A01) under its engagement-wide cap.
-    headers = _handler(misconfig_tools, eng, "SecurityHeadersProbeInput")
-    headers_model = _model(misconfig_tools, eng, "SecurityHeadersProbeInput")
+    headers_model, headers = _find(misconfig_tools, eng, "SecurityHeadersProbeInput")
     print("\n[Recon Scout] security_headers_probe:")
     print("  " + (await headers(headers_model(path="/"))).replace("\n", "\n  "))
 
-    exposure = _handler(misconfig_tools, eng, "ExposureProbeInput")
-    exposure_model = _model(misconfig_tools, eng, "ExposureProbeInput")
+    exposure_model, exposure = _find(misconfig_tools, eng, "ExposureProbeInput")
     print("\n[Recon Scout] exposure_probe:")
     print("  " + (await exposure(exposure_model())).replace("\n", "\n  "))
 
@@ -99,13 +94,8 @@ async def main() -> int:
 
     # Cross-specialist scoping, demonstrated: the SQLi hunter's /rest/products
     # capability fails CLOSED if it reaches for /ftp — the scope guard, not trust.
-    sqli_exposure = next(
-        h for m, h in misconfig_tools(eng, owner="leash-sqli-hunter")
-        if m.__name__ == "ExposureProbeInput"
-    )
-    sqli_exposure_model = next(
-        m for m, _ in misconfig_tools(eng, owner="leash-sqli-hunter")
-        if m.__name__ == "ExposureProbeInput"
+    sqli_exposure_model, sqli_exposure = _find(
+        misconfig_tools, eng, "ExposureProbeInput", owner="leash-sqli-hunter"
     )
     print("\n[Scope guard] SQLi hunter (scoped to /rest/products) attempts exposure_probe:")
     print("  " + await sqli_exposure(sqli_exposure_model()))
@@ -114,8 +104,7 @@ async def main() -> int:
     await eng.log("approval", operator="demo-operator", action="manual_sqli_probe", decision="approved")
     print("[Operator] APPROVED: manual_sqli_probe on /rest/products/search")
 
-    probe = _handler(sqli_tools, eng, "ManualSqliProbeInput")
-    probe_model = _model(sqli_tools, eng, "ManualSqliProbeInput")
+    probe_model, probe = _find(sqli_tools, eng, "ManualSqliProbeInput")
     print("\n[SQLi Hunter] manual_sqli_probe:")
     print("  " + await probe(probe_model(path="/rest/products/search?q=")))
 
@@ -127,8 +116,7 @@ async def main() -> int:
     print(f"[Auditor] findings: {len(eng.findings)} | chain tail {eng.ledger.tail_hash_hex[:16]}…")
 
     # Reporter writes the deliverable, citing the sealed chain (matches the bundle).
-    render = _handler(reporter_tools, eng, "RenderReportInput")
-    render_model = _model(reporter_tools, eng, "RenderReportInput")
+    render_model, render = _find(reporter_tools, eng, "RenderReportInput")
     await render(render_model())
     print(f"[Reporter] wrote {eng.ledger.dir / 'report.md'} ({len(eng.findings)} findings)")
 

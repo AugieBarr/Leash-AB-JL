@@ -58,7 +58,7 @@ A public MIT repo + 3-min demo where a tiered agent swarm coordinates through a 
 **Room lifecycle (descriptive):**
 1. **OPEN** — Commander creates the room and posts the engagement brief; ScopeWarden joins and issues the engagement capability (`localhost:3000` only); Auditor opens the hash-chain ledger for this `engagement_id`.
 2. **RECON** — Commander `@recon-scout`; Scout runs `http_probe`/`crawl` worker-jobs and emits one `send_event(message_type="tool_result")` per finding; Auditor appends each to the chain.
-3. **RECRUIT** — On a finding, Commander calls `thenvoi_add_participant("sqli-hunter")`; ScopeWarden derives a **restricted child capability** for that specialist (subset of engagement scope).
+3. **RECRUIT** — On a finding, Commander calls `band_add_participant("sqli-hunter")`; ScopeWarden derives a **restricted child capability** for that specialist (subset of engagement scope).
 4. **GATE** — Before any exploit tool, the specialist posts `send_event(message_type="task", "APPROVAL REQUIRED…")` + `@operator approve/halt`, then blocks on the human's reply. "halt" → Commander `remove_participant` on all (kill-switch).
 5. **EXPLOIT** — Specialist fans out worker tool-jobs; `scope_guard` wraps every subprocess (fails closed off-target); findings flow to Auditor.
 6. **SEAL** — Commander `@auditor`; Auditor runs `verify_chain()`, exports the sealed bundle, posts the chain-tail hash to the room.

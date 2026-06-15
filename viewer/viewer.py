@@ -70,11 +70,9 @@ def _status(engagement: str, lines: list[str]) -> dict:
     if pk is None or not path.exists() or not lines:
         return {"ok": None, "detail": "waiting for first event…", "count": 0, "tail": ""}
     res = verify_ndjson(path, pk)
-    tail = json.loads(lines[-1]).get("hash_prev", "")  # next event binds to the tail
-    # The true tail is the last record's chain_hash; surface the last linkage hash
-    # so the operator can eyeball the chain advancing. The verifier above is the
-    # authority on integrity.
-    return {"ok": res.ok, "detail": res.detail, "count": len(lines), "tail_b64": tail}
+    # res.tail_hash is the true chain tail (hash of the last event); show a prefix so
+    # the operator can watch the chain advance. verify_ndjson above is the integrity authority.
+    return {"ok": res.ok, "detail": res.detail, "count": len(lines), "tail": res.tail_hash}
 
 
 class _Handler(BaseHTTPRequestHandler):
@@ -377,7 +375,7 @@ INDEX_HTML = """<!doctype html>
     if (s.ok === true) { badge.className = "badge ok"; badge.innerHTML = '<span class="pulse"></span> verified'; }
     else if (s.ok === false) { badge.className = "badge bad"; badge.innerHTML = '<span class="pulse"></span> tampered'; }
     else { badge.className = "badge"; badge.innerHTML = '<span class="pulse"></span> waiting'; }
-    if (s.tail_b64) $("tail").textContent = s.tail_b64.replace(/=+$/, "").slice(0, 12) + "…";
+    if (s.tail) $("tail").textContent = s.tail.slice(0, 12) + "…";
   }
 
   function connect(engagement) {
