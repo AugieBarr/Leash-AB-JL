@@ -57,6 +57,29 @@ uv run pytest tests/test_audit_ledger.py -v
 
 ---
 
+## Live Control Center
+
+Leash ships a zero-dependency **operator Control Center** ([`viewer/`](viewer/)) — a live dashboard served straight from the Python standard library (no framework, nothing to install):
+
+- **Drive the engagement from the browser.** The human approval gate and the kill-switch are *operated from the UI*. When a specialist requests an exploitation step the gate opens; the operator clicks **Approve** or **Halt**, and the **Kill Switch** is live the whole time.
+- **Watch vulnerabilities land.** A severity-ranked findings feed surfaces each confirmed issue as it is discovered — SQL injection, security misconfiguration, sensitive exposure — with OWASP class, endpoint, and evidence, derived live from the audit stream.
+- **See the swarm.** A roster shows all six agents + the operator with live status (idle / engaged / active / awaiting approval / halted).
+- **Verify as it streams.** The chain-tail hash and a VERIFIED / TAMPERED badge are re-derived on every append by the same authority as the offline verifier; click any event to inspect its payload, `hash_prev`, and signature.
+
+Crucially, **the operator's own clicks are governed.** The viewer never writes to the ledger — a second writer would break the single-writer hash chain. Instead a click drops a decision file that the engagement (the sole ledger writer) picks up and records as a signed `approval` / `kill_switch` event. So *who approved what* is itself bound into the tamper-evident chain.
+
+It needs no API key — the same control channel that serves the live Band swarm also drives a paced, real-target demo:
+
+```bash
+# terminal 1 — the operable Control Center
+python -m viewer.viewer --engagement control-demo
+# terminal 2 — the paced engagement (real recon + a live, web-driven approval gate)
+python scripts/control_demo.py
+# then open http://localhost:8089/?engagement=control-demo and hit APPROVE / HALT
+```
+
+---
+
 ## Quickstart
 
 ```bash
