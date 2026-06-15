@@ -13,7 +13,7 @@ import httpx
 from pydantic import BaseModel, Field
 
 from governance.scope_guard import ScopeViolationError, scope_guard
-from swarm.control_channel import await_decision, request_approval
+from swarm.control_channel import await_decision, read_decision, request_approval
 from tools._subprocess import ensure_leading_slash, scoped_run, tool_available
 
 
@@ -37,7 +37,17 @@ def sqli_tools(eng):
             if not eng.halted:
                 await eng.halt(f"operator declined exploitation at the human gate ({tool_name})")
             return f"BLOCKED at the human gate: {tool_name} was not approved by the operator."
-        await eng.log("approval", action=tool_name, decision="approved", operator="operator", gate_id=gate)
+        # Record the approval under the operator the decision actually carried, so an
+        # unattended/automated approval (scripts/auto_approve.py) is never logged as a
+        # human one — the chain stays honest about who approved.
+        rec = read_decision(eng.engagement_id, eng.ledger.dir.parent) or {}
+        await eng.log(
+            "approval",
+            action=tool_name,
+            decision="approved",
+            operator=rec.get("operator") or "operator",
+            gate_id=gate,
+        )
         eng.approvals.add(tool_name)
         return None
 
