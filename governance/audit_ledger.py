@@ -68,6 +68,7 @@ class LedgerHead:
 class VerifyResult:
     ok: bool
     detail: str
+    tail_hash: str = ""  # hex of the final chain_hash on success; "" on failure
 
     def __bool__(self) -> bool:
         return self.ok
