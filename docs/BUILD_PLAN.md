@@ -103,7 +103,7 @@ genesis hash_prev = b"\x00" * 32
 
 **`bundle.py`** — port of `polis_code_memory/attested_store.ex` seal. `export_bundle(id)`: runs `verify_chain()` (refuses to seal a tampered chain) → writes manifest `{id, target, times, chain_tail_hash, event_count, findings}` → tars NDJSON + manifest + pubkey → emits `.sha256`. Offline CLI `python -m leash.governance.verify <bundle.tar.gz>` → `Chain OK — N events, no tampering`.
 
-**Human approval gate** (`agents/base_agent.py:approval_gate`) — pure Band messaging, no polling API: specialist posts `send_event(task)` + `@operator approve/halt`, awaits next inbound message, acts only on "approved" from the operator handle; "halt"/timeout → clean exit + Commander kill-switch. The human's reply is captured in the room transcript and cross-logged to the chain.
+**Human approval gate** *(as built: enforced at the LLM/prompt level, not a code function)* — pure Band messaging, no polling API: the SQLi Hunter's role prompt requires it to post `@operator` + the exact action and wait for an "approved"/"halt" reply before calling any exploit tool; "halt" → Commander `issuekillswitch` (hard in-process stop) + remove participants. The reply is captured in the room transcript; the decision is cross-logged to the chain.
 
 ---
 
