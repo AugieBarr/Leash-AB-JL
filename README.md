@@ -42,7 +42,7 @@ A security-engineering lead whose SOC 2 or PCI-DSS program has to produce a pene
   TIER 3  WORKER TOOL-JOBS    http_probe · crawl · sqlmap · ffuf  (semaphore-bounded fan-out)
 ```
 
-Band's `@mention` routing means a 30-agent room never floods every agent — each wakes only when called — so the tiered swarm *fits* Band rather than fighting it.
+Band's `@mention` routing means a 30-agent room never floods every agent — each wakes only when called — so the tiered swarm *fits* Band rather than fighting it. Handoffs are LLM-driven (the Commander chooses who to `@mention`); the scope leash, approval gate, and audit chain are enforced in code — so coordination stays flexible while governance stays non-optional.
 
 ---
 
@@ -103,7 +103,7 @@ Detection needs only the public key shipped in the bundle — never the private 
 
 ```bash
 # 1. Stand up the authorized lab target
-docker compose up -d juice-shop      # OWASP Juice Shop on http://localhost:3000
+docker compose up -d --wait juice-shop   # OWASP Juice Shop on http://localhost:3000 (waits until it's serving)
 
 # 2. Python env (uv)
 uv sync --extra dev
