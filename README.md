@@ -106,11 +106,14 @@ uv sync --extra dev
 uv run pytest -v
 
 # 4. Band credentials (per agent, registered once at app.band.ai)
-cp env.example .env                  # then fill ANTHROPIC_API_KEY
+cp env.example .env                  # Band URLs; no ANTHROPIC_API_KEY needed by default
 cp agent_config.example.yaml agent_config.yaml   # then fill agent_id + api_key per agent
+
+# 5. Run the live swarm through Band — keyless, on your local Claude subscription
+python -m swarm.launcher --engagement-id demo-01 --seed --brain-only
 ```
 
-`.env` and `agent_config.yaml` are gitignored — secrets never get committed.
+The default adapter (`LEASH_ADAPTER=claude_sdk`) drives the agents on the local `claude` binary's subscription auth, so **no `ANTHROPIC_API_KEY` is required**; set `LEASH_ADAPTER=anthropic` (and `ANTHROPIC_API_KEY`) only if you prefer a raw key. `.env` and `agent_config.yaml` are gitignored — secrets never get committed.
 
 ---
 
@@ -128,20 +131,21 @@ These worker jobs are coroutines, not 1000 live WebSocket agents — the worker 
 
 ## Status
 
-Day-3 build. Two things are true, and kept deliberately separate:
+Day-4 build. Two things are true, and kept deliberately separate:
 
-**Governance + tooling — verified offline, no API key, no Band.** The full governed pipeline runs deterministically ([`scripts/offline_demo.py`](scripts/offline_demo.py)) and confirms **three real vulnerability classes** on live Juice Shop: recon maps the surface → **security misconfiguration** (missing CSP/HSTS, A05) and **sensitive exposure** (open `/ftp`, version disclosure, A01/A05) → ScopeWarden issues a `/rest/products`-scoped capability → the SQLi hunter reaching for `/ftp` is **blocked by the scope guard** (fail-closed) → operator approval → SQLi **confirmed** (`q=apple'` → HTTP 500) → Auditor **seals a tamper-evident bundle** that verifies offline. **59/59 tests green** (tamper-detection, path-boundary + `..`-traversal scope bypasses, the cap-never-exceeded scale invariant, fail-closed scoping, kill-switch refusal). This pipeline is **in-process Python — it does not go through Band**; it is an honest proof of the governance layer, not of Band coordination.
+**Governance + tooling — verified offline, no API key, no Band.** The full governed pipeline runs deterministically ([`scripts/offline_demo.py`](scripts/offline_demo.py)) and confirms **three real vulnerability classes** on live Juice Shop: recon maps the surface → **security misconfiguration** (missing CSP/HSTS, A05) and **sensitive exposure** (open `/ftp`, version disclosure, A01/A05) → ScopeWarden issues a `/rest/products`-scoped capability → the SQLi hunter reaching for `/ftp` is **blocked by the scope guard** (fail-closed) → the **human approval gate** (enforced inside the tool, not by prompt) → SQLi **confirmed** (`q=apple'` → HTTP 500) → Auditor **seals a tamper-evident bundle** that verifies offline. **61/61 tests green** (tamper-detection, path-boundary + `..`-traversal scope bypasses, the cap-never-exceeded scale invariant, fail-closed scoping, kill-switch refusal, and the code-enforced approval gate). This pipeline is **in-process Python — it does not go through Band**; it is an honest proof of the governance layer.
 
-**Band integration — connectivity proven, live coordination now unblocked (no key).** All **six Band agents register and connect concurrently** (6/6, verified by `swarm/launcher.py --boot-check` and `scale_test/connect_harness.py`). The case-room seeder ([`swarm/seed.py`](swarm/seed.py)) creates the room and adds the agents; a kickoff `@mention` was observed reaching the Commander on connect (a one-time manual observation, not yet a reproducible test). The **live LLM-driven swarm coordinating through the room is the remaining milestone** (task #9) — and it **no longer needs an Anthropic API key**: the default adapter (`LEASH_ADAPTER=claude_sdk`) drives the swarm on the local Claude subscription via the `claude` binary. Set `LEASH_ADAPTER=anthropic` only if you prefer a raw key.
+**Band integration — the live swarm coordinates through Band, with no API key.** It runs keyless on the local Claude subscription (default `LEASH_ADAPTER=claude_sdk`, via the `claude` binary; `anthropic` switches to a raw key). Verified live against Juice Shop: all six agents connect (6/6); the launcher seeds the room and the **Commander recruits specialists on discovery** through a coded `recruitspecialist` tool — observed live recruiting the Recon Scout (recorded as a `recruited` event), after which ScopeWarden issued its capability and the recruited scout ran real probes. Every action lands in the same tamper-evident chain, which **verifies after the live run** (`Chain OK — N events, no tampering`). The deeper exploit → approve → seal arc is driven by the demos below and by the **same in-tool gate the live swarm uses**.
 
-**Governance primitives, honestly scoped.** The kill-switch is real, not a prompt — `Engagement.halt()` makes every offensive tool refuse **in-process** and audits the refusal; a companion script ([`swarm/kill_switch.py`](swarm/kill_switch.py)) ejects participants from the room Band-side. The **scale layer** ([`scale_test/`](scale_test/)) holds the concurrency cap (peak 16/16 over 1000 jobs), runs 200 real scope-guarded probes, and holds 6/6 live Band WebSockets — every number stated with what it does and does not prove. The **Reporter** emits a real deliverable — executive summary, severity rollup, findings table, and an audit attestation block (event count, chain tail, Ed25519 public key, offline verify command).
+**Governance primitives, honestly scoped.** The **approval gate** is enforced *inside the exploitation tools* ([`tools/sqli_tools.py`](tools/sqli_tools.py)) — `manual_sqli_probe` / `run_sqlmap` block on the operator's APPROVE / HALT and record the approval to the chain, so it cannot be bypassed by a non-compliant LLM (offline runs pre-authorize; the live swarm and Control Center block on the browser). The **kill-switch** is real, not a prompt — `Engagement.halt()` makes every offensive tool refuse in-process and audits the refusal; a companion script ([`swarm/kill_switch.py`](swarm/kill_switch.py)) ejects participants Band-side. The **scale layer** ([`scale_test/`](scale_test/)) holds the concurrency cap (peak 16/16 over 1000 jobs), runs 200 real scope-guarded probes, and holds 6/6 live Band WebSockets. The **Reporter** emits a real deliverable — executive summary, severity rollup, findings table, and an Ed25519 audit attestation.
 
 Reproduction — with Juice Shop on `localhost:3000`:
 
 ```bash
 python scripts/offline_demo.py     # governance pipeline, in-process (no Band, no key)
 python -m governance.verify engagements/offline-demo/offline-demo_bundle.tar.gz
-python -m swarm.launcher --boot-check   # 6/6 Band agents connect (no key)
+# live swarm through Band — no key; Commander recruits specialists on discovery:
+python -m swarm.launcher --engagement-id demo-01 --seed --brain-only
 ```
 
 The day-by-day to submission (Jun 19) lives in [`docs/BUILD_PLAN.md`](docs/BUILD_PLAN.md).

@@ -9,7 +9,7 @@ red). Everything else sets those up.
 - `docker compose up -d juice-shop` (target on :3000)
 - Terminal A: `python -m viewer.viewer --engagement control-demo` → open `http://localhost:8089/?engagement=control-demo` full-screen
 - Terminal B ready with `python scripts/control_demo.py` and `python scripts/tamper_demo.py`
-- Live-swarm version (preferred): a Band room open with the six agents + `python -m swarm.launcher` (needs `ANTHROPIC_API_KEY`). If the live run is flaky, fall back to `control_demo.py` as the on-screen "swarm" and narrate the Band room separately.
+- Live-swarm version (preferred): `python -m swarm.launcher --engagement-id demo-01 --seed --brain-only` — **keyless** (runs on the local Claude subscription via the `claude_sdk` adapter; no `ANTHROPIC_API_KEY`). Only the brain tier is seeded; the Commander **recruits specialists on discovery** via the `recruitspecialist` tool (each lands a `recruited` event in the chain). The LLM swarm is deliberative — if the full exploit→seal arc runs long on camera, use `control_demo.py` as the on-screen spine for the gate/seal beats and intercut the live Band room for the recruit + `@mention` coordination (the governance story is identical either way).
 
 ---
 
