@@ -66,7 +66,7 @@ async def main() -> None:
         import shutil
         from pathlib import Path
 
-        eng_dir = Path(os.getenv("LEASH_ENGAGEMENTS", "engagements")) / args.engagement_id
+        eng_dir = Path("engagements") / args.engagement_id  # matches open_engagement's default root
         if eng_dir.exists():
             shutil.rmtree(eng_dir)
     eng = open_engagement(args.engagement_id, args.host, args.port)
