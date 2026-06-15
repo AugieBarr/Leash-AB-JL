@@ -1,8 +1,8 @@
 # Leash 🐕‍🦺
 
-**A swarm of offensive-security agents that coordinates through [Band](https://band.ai) — recruiting specialists on discovery, handing off by `@mention`, with a human in the room.**
+**A governed swarm of offensive-security agents that coordinates through [Band](https://band.ai) — specialists recruited on discovery, handoffs by `@mention`, the sealed audit hash posted back into the room, and a human holding the kill-switch.**
 
-Point it at a target and a **Commander agent runs the engagement inside a Band room**: it recruits a Recon Scout, and the moment recon surfaces an attack surface it pulls the matching specialist *into the room live* — every handoff an `@mention`, every agent holding its own seat the human can watch. **Band is the coordination plane.** Because the whole swarm runs *through* it, Leash can wrap that coordination in a **scope leash, a human approval gate, and a tamper-evident audit trail** — which is what makes an autonomous offensive swarm safe to run unsupervised.
+Point it at a target and a **Commander runs the engagement inside a Band room**: it recruits a Recon Scout, and the moment recon surfaces an attack surface it pulls the matching specialist *into the room live*. Coordination runs through Band — every recruit and handoff is a room event the human watches — and so does the **proof**: when the Auditor seals the run, the tamper-evident chain hash is posted into the room as a code-dispatched event, so the record lands where the swarm lives. Beneath that, a **fail-closed scope leash, an in-tool human approval gate, and a tamper-evident Ed25519 audit chain** make the swarm safe to run unsupervised — and because that chain is in-process, it holds even if Band drops. **Band is the coordination plane; the governance signal lands there too.**
 
 > Built for the **Band of Agents Hackathon** (lablab.ai, Jun 2026) by Team Roan — Josh Langsam ([@joshualangsam-a11y](https://github.com/joshualangsam-a11y)) & Augie Barreirinhas ([@AugieBarr](https://github.com/AugieBarr)).
 
