@@ -154,8 +154,8 @@ async def main() -> int:
         halt_task.cancel()
         try:
             await halt_task
-        except asyncio.CancelledError:
-            pass
+        except (asyncio.CancelledError, Exception):
+            pass  # teardown must never mask the engagement's own return/seal
 
 
 async def _finish(eng) -> int:

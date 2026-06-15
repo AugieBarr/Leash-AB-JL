@@ -18,6 +18,11 @@ def tool_available(name: str) -> bool:
     return shutil.which(name) is not None
 
 
+def ensure_leading_slash(path: str) -> str:
+    """Normalize a tool's path argument to start with '/'."""
+    return path if path.startswith("/") else "/" + path
+
+
 async def scoped_run(
     cmd: list[str], target_url: str, cap: Capability, *, timeout: float = 60.0, halted: bool = False
 ) -> dict:

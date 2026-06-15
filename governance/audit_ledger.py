@@ -42,7 +42,7 @@ GENESIS: bytes = b"\x00" * 32
 
 
 def _seq_be64(seq: int) -> bytes:
-    return int(seq).to_bytes(8, "big", signed=False)
+    return seq.to_bytes(8, "big", signed=False)
 
 
 def _signing_bytes(seq: int, kind: str, hash_prev: bytes, payload: str) -> bytes:

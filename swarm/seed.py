@@ -15,19 +15,19 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import os
 
 from dotenv import load_dotenv
 
 from band.client.rest import (
     DEFAULT_REQUEST_OPTIONS,
-    AsyncRestClient,
     ChatMessageRequest,
     ChatMessageRequestMentionsItem,
     ChatRoomRequest,
     ParticipantRequest,
 )
 from band.config import load_agent_config
+
+from swarm._band_client import band_client
 
 SWARM = [
     "leash-commander",
@@ -37,14 +37,6 @@ SWARM = [
     "leash-sqli-hunter",
     "leash-reporter",
 ]
-
-
-def _rest_base_url() -> str:
-    return os.getenv("THENVOI_REST_URL", "https://app.band.ai/").rstrip("/")
-
-
-def _client(api_key: str) -> AsyncRestClient:
-    return AsyncRestClient(base_url=_rest_base_url(), api_key=api_key)
 
 
 def _room_id(room) -> str:
@@ -62,7 +54,7 @@ async def seed_room(target: str = "localhost:3000", *, kickoff: bool = True) -> 
     creds = {label: load_agent_config(label) for label in SWARM}
     ids = {label: creds[label][0] for label in SWARM}
 
-    commander = _client(creds["leash-commander"][1])
+    commander = band_client(creds["leash-commander"][1])
     room = await commander.agent_api_chats.create_agent_chat(
         chat=ChatRoomRequest(), request_options=DEFAULT_REQUEST_OPTIONS
     )
@@ -78,7 +70,7 @@ async def seed_room(target: str = "localhost:3000", *, kickoff: bool = True) -> 
         )
 
     if kickoff:
-        auditor = _client(creds["leash-auditor"][1])
+        auditor = band_client(creds["leash-auditor"][1])
         await auditor.agent_api_messages.create_agent_chat_message(
             chat_id=room_id,
             message=ChatMessageRequest(

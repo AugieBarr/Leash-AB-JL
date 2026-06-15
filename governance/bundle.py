@@ -39,6 +39,11 @@ def _add_bytes(tar: tarfile.TarFile, name: str, data: bytes) -> None:
     tar.addfile(info, io.BytesIO(data))
 
 
+def _count_events(ndjson_text: str) -> int:
+    """Count non-blank NDJSON lines — the canonical 'how many events' measure."""
+    return sum(1 for line in ndjson_text.splitlines() if line.strip())
+
+
 def export_bundle(
     engagement_id: str,
     *,
@@ -55,7 +60,7 @@ def export_bundle(
         raise ValueError(f"refusing to seal a tampered chain: {result.detail}")
 
     ndjson_bytes = ledger.path.read_bytes()
-    event_count = sum(1 for line in ndjson_bytes.decode("utf-8").splitlines() if line.strip())
+    event_count = _count_events(ndjson_bytes.decode("utf-8"))
     manifest = {
         "engagement_id": engagement_id,
         "target": target,
@@ -97,6 +102,15 @@ def verify_bundle(bundle_path: str | os.PathLike) -> BundleVerifyResult:
         manifest = json.loads(tar.extractfile("manifest.json").read().decode("utf-8"))
         ndjson_text = tar.extractfile("audit.ndjson").read().decode("utf-8")
 
+    # These three fields are load-bearing for the cross-check below; a missing one
+    # is a malformed bundle, not a value mismatch — surface that distinctly.
+    required = {"pubkey_ed25519_b64", "chain_tail_hash", "event_count"}
+    missing = required - manifest.keys()
+    if missing:
+        return BundleVerifyResult(
+            False, f"malformed manifest: missing {', '.join(sorted(missing))}", manifest
+        )
+
     pubkey = Ed25519PublicKey.from_public_bytes(
         base64.b64decode(manifest["pubkey_ed25519_b64"])
     )
@@ -109,19 +123,19 @@ def verify_bundle(bundle_path: str | os.PathLike) -> BundleVerifyResult:
     # Cross-check the manifest's advertised tail/count against what the chain
     # actually re-derives — otherwise a reader trusting manifest['chain_tail_hash']
     # would be trusting an unverified, bundle-local value.
-    if result.tail_hash != manifest.get("chain_tail_hash"):
+    if result.tail_hash != manifest["chain_tail_hash"]:
         return BundleVerifyResult(
             False,
-            f"chain tail mismatch: manifest says {manifest.get('chain_tail_hash')}, "
+            f"chain tail mismatch: manifest says {manifest['chain_tail_hash']}, "
             f"recomputed {result.tail_hash}",
             manifest,
         )
 
-    count = sum(1 for line in ndjson_text.splitlines() if line.strip())
-    if count != manifest.get("event_count"):
+    count = _count_events(ndjson_text)
+    if count != manifest["event_count"]:
         return BundleVerifyResult(
             False,
-            f"event_count mismatch: manifest says {manifest.get('event_count')}, found {count}",
+            f"event_count mismatch: manifest says {manifest['event_count']}, found {count}",
             manifest,
         )
     return BundleVerifyResult(

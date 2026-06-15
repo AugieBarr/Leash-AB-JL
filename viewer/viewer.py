@@ -32,7 +32,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 
 from governance.audit_ledger import verify_ndjson
 from swarm.control_channel import submit_decision
@@ -51,7 +51,7 @@ def _engagements() -> list[str]:
     )
 
 
-def _pubkey_for(engagement: str):
+def _pubkey_for(engagement: str) -> Ed25519PublicKey | None:
     """Derive the Ed25519 public key from the engagement's own key file.
 
     For a live (unsealed) engagement the private key sits beside the ledger on
@@ -76,7 +76,7 @@ def _status(engagement: str, lines: list[str]) -> dict:
     path = ROOT / engagement / "audit.ndjson"
     if pk is None or not path.exists() or not lines:
         return {"ok": None, "detail": "waiting for first event…", "count": 0, "tail": ""}
-    res = verify_ndjson(path, pk)
+    res = verify_ndjson(lines, pk)  # reuse the lines we already read this tick
     # res.tail_hash is the true chain tail (hash of the last event); show a prefix so
     # the operator can watch the chain advance. verify_ndjson above is the integrity authority.
     return {"ok": res.ok, "detail": res.detail, "count": len(lines), "tail": res.tail_hash}

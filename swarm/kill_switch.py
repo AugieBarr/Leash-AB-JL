@@ -16,29 +16,22 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import os
 
 from dotenv import load_dotenv
 
-from band.client.rest import DEFAULT_REQUEST_OPTIONS, AsyncRestClient
+from band.client.rest import DEFAULT_REQUEST_OPTIONS
 from band.config import load_agent_config
 
+from swarm._band_client import band_client
+
 COMMANDER = "leash-commander"
-
-
-def _rest_base_url() -> str:
-    return os.getenv("THENVOI_REST_URL", "https://app.band.ai/").rstrip("/")
-
-
-def _client(api_key: str) -> AsyncRestClient:
-    return AsyncRestClient(base_url=_rest_base_url(), api_key=api_key)
 
 
 async def eject_room(room_id: str, *, include_commander: bool = False) -> list[str]:
     """Remove every specialist from the room. Returns the handles/ids removed."""
     load_dotenv()
     cmd_id, cmd_key = load_agent_config(COMMANDER)
-    client = _client(cmd_key)
+    client = band_client(cmd_key)
 
     resp = await client.agent_api_participants.list_agent_chat_participants(
         room_id, request_options=DEFAULT_REQUEST_OPTIONS

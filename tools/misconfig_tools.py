@@ -21,6 +21,7 @@ import httpx
 from pydantic import BaseModel, Field
 
 from governance.scope_guard import ScopeViolationError, scope_guard
+from tools._subprocess import ensure_leading_slash
 
 # Security headers a hardened web app should set; absence is the finding.
 _EXPECTED_HEADERS = (
@@ -52,7 +53,7 @@ def misconfig_tools(eng, owner: str = "leash-recon-scout"):
         halted = await eng.refuse_if_halted("security_headers_probe")
         if halted:
             return halted
-        path = args.path if args.path.startswith("/") else "/" + args.path
+        path = ensure_leading_slash(args.path)
         url = eng.base_url + path
         try:
             scope_guard(url, cap())

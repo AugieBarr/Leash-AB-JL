@@ -35,12 +35,12 @@ import os
 import re
 import time
 from pathlib import Path
-from typing import Optional
 
 # Engagement ids name a directory, so they must never carry a path separator or a
 # parent reference. This allowlist is the structural defense against traversal
 # (e.g. an id of ``../../etc``) — callers reaching the filesystem go through it.
-_SAFE_ID = re.compile(r"[A-Za-z0-9_-]+")
+# Anchored so it stays safe even if a future caller uses .match()/.search().
+_SAFE_ID = re.compile(r"^[A-Za-z0-9_-]+$")
 
 _ACTIONS = ("approve", "halt")
 
@@ -129,7 +129,7 @@ def submit_decision(
     gate_id: str = "",
     operator: str = "operator",
     root: str | os.PathLike = "engagements",
-    now_ms: Optional[int] = None,
+    now_ms: int | None = None,
 ) -> dict:
     """Record the operator's decision as a file the engagement will pick up. This
     is the only write the viewer performs, and it deliberately does NOT touch the
@@ -153,7 +153,7 @@ def submit_decision(
     return record
 
 
-def read_decision(engagement_id: str, root: str | os.PathLike = "engagements") -> Optional[dict]:
+def read_decision(engagement_id: str, root: str | os.PathLike = "engagements") -> dict | None:
     return _read(decision_path(engagement_id, root))
 
 
@@ -164,7 +164,7 @@ def clear_decision(engagement_id: str, root: str | os.PathLike = "engagements") 
         pass
 
 
-def _read(path: Path) -> Optional[dict]:
+def _read(path: Path) -> dict | None:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except (FileNotFoundError, json.JSONDecodeError):

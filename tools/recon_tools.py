@@ -10,6 +10,7 @@ import httpx
 from pydantic import BaseModel, Field
 
 from governance.scope_guard import ScopeViolationError, scope_guard
+from tools._subprocess import ensure_leading_slash
 
 # Endpoints worth checking on a Juice-Shop-style target. Probing is real HTTP;
 # the SQLi hint below is analyst domain knowledge, surfaced for the LLM to act on.
@@ -23,6 +24,8 @@ _RECON_CANDIDATES = [
 
 
 def recon_tools(eng):
+    cap = lambda: eng.cap_for("leash-recon-scout")  # noqa: E731 (terse local, mirrors sqli/misconfig)
+
     class HttpProbeInput(BaseModel):
         """GET an in-scope path on the target and report status, server header, and notable hints."""
 
@@ -35,10 +38,10 @@ def recon_tools(eng):
         halted = await eng.refuse_if_halted("http_probe")
         if halted:
             return halted
-        path = args.path if args.path.startswith("/") else "/" + args.path
+        path = ensure_leading_slash(args.path)
         url = eng.base_url + path
         try:
-            scope_guard(url, eng.cap_for("leash-recon-scout"))
+            scope_guard(url, cap())
         except ScopeViolationError as e:
             await eng.log("error", tool="http_probe", url=url, blocked=str(e))
             return f"BLOCKED by scope guard: {e}"
@@ -46,7 +49,7 @@ def recon_tools(eng):
         async with httpx.AsyncClient(timeout=10.0) as client:
             r = await client.get(url)
         body = r.text[:600]
-        hint = "possible-sql" if ("SQL" in body or "sqlite" in body.lower()) else "none"
+        hint = "possible-sql" if "SQL" in body.upper() else "none"
         await eng.log("tool_result", tool="http_probe", url=url, status=r.status_code, hint=hint)
         return (
             f"GET {url} -> {r.status_code}; server={r.headers.get('server', '?')}; "
@@ -65,7 +68,7 @@ def recon_tools(eng):
             for path in _RECON_CANDIDATES:
                 url = eng.base_url + path
                 try:
-                    scope_guard(url, eng.cap_for("leash-recon-scout"))
+                    scope_guard(url, cap())
                     r = await client.get(url)
                     found.append({"path": path, "status": r.status_code})
                 except ScopeViolationError as e:

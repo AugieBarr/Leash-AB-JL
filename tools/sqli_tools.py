@@ -13,7 +13,7 @@ import httpx
 from pydantic import BaseModel, Field
 
 from governance.scope_guard import ScopeViolationError, scope_guard
-from tools._subprocess import scoped_run, tool_available
+from tools._subprocess import ensure_leading_slash, scoped_run, tool_available
 
 
 def sqli_tools(eng):
@@ -31,7 +31,7 @@ def sqli_tools(eng):
         halted = await eng.refuse_if_halted("manual_sqli_probe")
         if halted:
             return halted
-        base = args.path if args.path.startswith("/") else "/" + args.path
+        base = ensure_leading_slash(args.path)
         benign_url = eng.base_url + base + "apple"
         probe_url = eng.base_url + base + "apple'"
         try:
@@ -45,7 +45,7 @@ def sqli_tools(eng):
             benign = await client.get(benign_url)
             probe = await client.get(probe_url)
 
-        injectable = probe.status_code >= 500 or "SQL" in probe.text or "SQLITE" in probe.text.upper()
+        injectable = probe.status_code >= 500 or "SQL" in probe.text.upper()
         await eng.log(
             "tool_result",
             tool="manual_sqli_probe",
@@ -77,7 +77,7 @@ def sqli_tools(eng):
         halted = await eng.refuse_if_halted("run_sqlmap")
         if halted:
             return halted
-        url = eng.base_url + (args.path if args.path.startswith("/") else "/" + args.path)
+        url = eng.base_url + ensure_leading_slash(args.path)
         if not tool_available("sqlmap"):
             try:
                 scope_guard(url, cap())
