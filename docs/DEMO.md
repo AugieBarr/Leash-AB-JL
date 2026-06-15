@@ -21,7 +21,7 @@ red). Everything else sets those up.
 | **1:18–1:42** | **Defenses panel** ticks up: scope guard blocks `leash-sqli-hunter → /ftp` | "The SQLi specialist is scoped to `/rest/products`. Watch it reach for `/ftp` — **blocked.** Not by trust. By construction. The leash holds." |
 | **1:42–2:18** | Gate opens (amber) → operator clicks **APPROVE** → SQLi confirmed 200→500, HIGH finding lands; gate turns green | "Nothing destructive runs without a human. The operator approves **in the browser** — and that approval is itself recorded into the tamper-evident chain. SQL injection confirmed." |
 | **2:18–2:52** | Run `tamper_demo.py`; reload viewer on `tamper-demo`: badge flips **VERIFIED → TAMPERED**, event #6 goes red | "Every tool claims an audit log. Watch someone try to **rewrite** ours — erase the SQLi finding. One byte changed. Caught instantly, with only the **public key**. You cannot forge this record." |
-| **2:52–3:00** | Sealed bundle + `python -m governance.verify … → Chain OK` | "Leash: the coordination and control plane that makes an offensive swarm safe to run unsupervised. Built on Band." |
+| **2:35–3:00** | The Band room: the Auditor's machine-posted `AUDIT SEALED — <hash>` lands in-channel (`scripts/seal_to_band_demo.py`), with the offline `python -m governance.verify … → Chain OK` as the cross-check. | "The seal isn't only written to disk — it's posted into the room, as an event. The proof lands where the swarm lives. **You cannot forge this record. Leash — governed, on Band.**" |
 
 ---
 
