@@ -1,7 +1,8 @@
 """worker_fanout_bench — the honest "scales toward 1000" measurement.
 
 The worker tool-job tier is plain asyncio tasks (NOT Band agents), bounded by
-the same ``ConcurrencyCap`` the swarm uses in production. This benchmark fans
+Leash's ``ConcurrencyCap`` (``swarm/concurrency_cap.py``, the bounded-fan-out
+primitive built for that tier). This benchmark fans
 out ``--workers`` jobs through ``ConcurrencyCap(--cap)``, proves peak concurrency
 never exceeds the cap (the slot-freed-by-task-death invariant), and reports
 throughput.
