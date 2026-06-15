@@ -113,6 +113,17 @@ def verify_bundle(bundle_path: str | os.PathLike) -> BundleVerifyResult:
     if not result.ok:
         return BundleVerifyResult(False, result.detail, manifest)
 
+    # Cross-check the manifest's advertised tail/count against what the chain
+    # actually re-derives — otherwise a reader trusting manifest['chain_tail_hash']
+    # would be trusting an unverified, bundle-local value.
+    if result.tail_hash != manifest.get("chain_tail_hash"):
+        return BundleVerifyResult(
+            False,
+            f"chain tail mismatch: manifest says {manifest.get('chain_tail_hash')}, "
+            f"recomputed {result.tail_hash}",
+            manifest,
+        )
+
     count = sum(1 for line in ndjson_text.splitlines() if line.strip())
     if count != manifest.get("event_count"):
         return BundleVerifyResult(
