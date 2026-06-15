@@ -36,3 +36,11 @@ async def test_report_handles_no_findings(tmp_path):
     report = await handler(model())
     assert "No findings recorded" in report
     assert "## Audit attestation" in report
+
+
+async def test_report_marks_halted_engagement(tmp_path):
+    eng = open_engagement("t-report-halt", "localhost", 3000, root=str(tmp_path))
+    await eng.halt("operator halt")
+    model, handler = _pair(reporter_tools, eng, "RenderReportInput")
+    report = await handler(model())
+    assert "HALTED by kill-switch" in report
