@@ -26,6 +26,7 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--host", default=os.getenv("LEASH_TARGET_HOST", "localhost"))
     p.add_argument("--port", type=int, default=int(os.getenv("LEASH_TARGET_PORT", "3000")))
     p.add_argument("--boot-check", action="store_true", help="Connect all agents, then exit.")
+    p.add_argument("--resume", action="store_true", help="Continue an existing ledger instead of starting fresh.")
     return p.parse_args()
 
 
