@@ -9,8 +9,6 @@ confirmation; ``run_sqlmap`` is the full tool when installed.
 """
 from __future__ import annotations
 
-import json
-
 import httpx
 from pydantic import BaseModel, Field
 
