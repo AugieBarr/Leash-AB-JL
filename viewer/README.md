@@ -32,8 +32,9 @@ python -m viewer.viewer --engagement tamper-demo
 ```
 
 Verified against the real `offline-demo` ledger: an untouched chain reads
-*"Chain OK — 4 events, no tampering detected"*; flipping the seq-2 approval from
-`approved` to `denied` reads *"bad signature at seq 2"*.
+*"Chain OK — N events, no tampering detected"*; flipping any event's payload (e.g.
+an approval's `approved` → `denied`) flips the badge to *"bad signature at seq K"*
+for the edited event. (Counts vary per demo run.)
 
 > Read-only. The viewer never writes to the ledger — it only verifies and
 > displays. Built on the standard-library HTTP server so the demo needs nothing
