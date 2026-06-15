@@ -19,10 +19,15 @@ def tool_available(name: str) -> bool:
 
 
 async def scoped_run(
-    cmd: list[str], target_url: str, cap: Capability, *, timeout: float = 60.0
+    cmd: list[str], target_url: str, cap: Capability, *, timeout: float = 60.0, halted: bool = False
 ) -> dict:
     """Authorize target_url against cap, then run cmd. Returns
-    {returncode, stdout, stderr, timed_out}. Raises before exec if out of scope."""
+    {returncode, stdout, stderr, timed_out}. Raises RuntimeError if the
+    engagement is halted (kill-switch) and ScopeViolationError if out of scope —
+    both before any process is spawned. The halt check is enforced here so the
+    kill-switch is intrinsic to the runner, not a per-caller convention."""
+    if halted:
+        raise RuntimeError("engagement halted — kill-switch engaged; refusing to spawn any process")
     scope_guard(target_url, cap)
 
     proc = await asyncio.create_subprocess_exec(
