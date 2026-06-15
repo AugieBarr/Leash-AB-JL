@@ -100,8 +100,11 @@ async def main() -> int:
     print("\n[Scope guard] SQLi hunter (scoped to /rest/products) attempts exposure_probe:")
     print("  " + await sqli_exposure(sqli_exposure_model()))
 
-    # Human approval gate (the operator approves in the room; here we record the decision).
+    # Human approval gate. This deterministic demo pre-authorizes the action so
+    # the tool's built-in gate proceeds without a browser; control_demo.py and the
+    # live swarm instead block on the operator's APPROVE in the Control Center.
     await eng.log("approval", operator="demo-operator", action="manual_sqli_probe", decision="approved")
+    eng.approvals.add("manual_sqli_probe")
     print("[Operator] APPROVED: manual_sqli_probe on /rest/products/search")
 
     probe_model, probe = _find(sqli_tools, eng, "ManualSqliProbeInput")
