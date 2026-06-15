@@ -43,12 +43,14 @@ async def _boot_check(eng) -> None:
 
 
 async def _run(eng) -> None:
-    if not os.getenv("ANTHROPIC_API_KEY"):
-        # Fail hard rather than connect and silently stall when the first @mention
-        # arrives with no model behind it. (boot-check is exempt — it only connects.)
+    if os.getenv("LEASH_ADAPTER", "claude_sdk").lower() == "anthropic" and not os.getenv("ANTHROPIC_API_KEY"):
+        # Only the raw-key adapter needs ANTHROPIC_API_KEY. The default claude_sdk
+        # adapter drives the swarm on the local Claude subscription with no key, so
+        # fail hard here only when the operator explicitly selected the key path.
         raise SystemExit(
-            "ERROR: ANTHROPIC_API_KEY is not set. Put it in leash/.env or export it, "
-            "then re-run. (Use --boot-check to test connectivity without a key.)"
+            "ERROR: LEASH_ADAPTER=anthropic but ANTHROPIC_API_KEY is not set. Set the "
+            "key, or unset LEASH_ADAPTER to run on the local Claude subscription "
+            "(claude_sdk adapter — no key needed). Use --boot-check to test connectivity."
         )
     agents = build_swarm(eng)
     print(
