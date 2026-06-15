@@ -60,3 +60,13 @@ def test_glob_matches_single_label():
     cap = root_capability("w", ScopeSpec.of(["*.internal"], [80], ["/"]))
     assert check_capability(cap, Target("app.internal", 80, "/"))
     assert not check_capability(cap, Target("app.prod.internal", 80, "/"))  # '*' is one label
+
+
+def test_path_boundary_prevents_sibling_prefix_leak():
+    # The crown-jewel invariant: a /rest/products cap permits itself and sub-paths,
+    # but NEVER a sibling that merely shares the textual prefix.
+    cap = root_capability("w", ScopeSpec.of(["localhost"], [3000], ["/rest/products"]))
+    assert check_capability(cap, Target("localhost", 3000, "/rest/products"))
+    assert check_capability(cap, Target("localhost", 3000, "/rest/products/search"))
+    assert not check_capability(cap, Target("localhost", 3000, "/rest/products-evil"))
+    assert not check_capability(cap, Target("localhost", 3000, "/rest/productsX"))
