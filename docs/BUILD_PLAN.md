@@ -192,9 +192,9 @@ uv run pytest tests/ -v                          # all green incl. tamper test (
 python -m agents.auditor --test-mode             # connects to Band, logs, writes chain, verifies
 python -m swarm.launcher --smoke --auto-approve --engagement-id smoke-$(date +%s)   # mini loop seals + verifies
 python -m swarm.launcher --engagement-id demo-01 # full 6-beat; human types 'approved'; sqlmap pops; bundle sealed
-python -m leash.governance.verify demo-01_bundle.tar.gz   # "Chain OK — N events, no tampering"
-python -m scale_test.worker_fanout_bench --workers 200 --target http://localhost:3000
-python -m scale_test.connect_harness --agents 30 --hold-seconds 60
+python -m governance.verify engagements/demo-01/demo-01_bundle.tar.gz   # "Chain OK — N events, no tampering"
+python -m scale_test.worker_fanout_bench --workers 1000 --cap 16
+python -m scale_test.connect_harness --hold 60
 ```
 
 ---
