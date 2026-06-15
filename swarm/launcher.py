@@ -43,7 +43,12 @@ async def _boot_check(eng) -> None:
 
 async def _run(eng) -> None:
     if not os.getenv("ANTHROPIC_API_KEY"):
-        print("WARNING: ANTHROPIC_API_KEY is not set — agents will connect but cannot reason.")
+        # Fail hard rather than connect and silently stall when the first @mention
+        # arrives with no model behind it. (boot-check is exempt — it only connects.)
+        raise SystemExit(
+            "ERROR: ANTHROPIC_API_KEY is not set. Put it in leash/.env or export it, "
+            "then re-run. (Use --boot-check to test connectivity without a key.)"
+        )
     agents = build_swarm(eng)
     print(
         f"Leash swarm: {len(agents)} agents online for engagement {eng.engagement_id} "
