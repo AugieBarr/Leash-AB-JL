@@ -87,7 +87,7 @@ def sqli_tools(eng):
             return "sqlmap is not installed in this environment — use manual_sqli_probe for confirmation."
 
         cmd = ["sqlmap", "-u", url, "-p", args.param, "--batch", "--level=1", "--risk=1", "--technique=U", "--flush-session"]
-        result = await scoped_run(cmd, url, cap(), timeout=120.0)
+        result = await scoped_run(cmd, url, cap(), timeout=120.0, halted=eng.halted)
         injectable = "is vulnerable" in result["stdout"] or "injectable" in result["stdout"].lower()
         await eng.log(
             "tool_result",
