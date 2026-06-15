@@ -159,10 +159,30 @@ def auditor_tools(eng):
             )
         except Exception as e:
             return f"SEAL FAILED: {e}"
+        tail = eng.ledger.tail_hash_hex
+        # Broadcast the seal into the Band room as a code-dispatched event (not an LLM
+        # @mention): the room transcript becomes the governance record. Best-effort —
+        # the offline bundle is the source of truth, so a Band hiccup never fails the seal.
+        broadcast = ""
+        if eng.band_room_id:
+            from swarm._band_client import post_governance_signal
+
+            signal = (
+                f"AUDIT SEALED — {path.name} | chain tail {tail[:16]}… | "
+                f"{len(eng.findings)} findings | verify offline: "
+                f"python -m governance.verify {path.name}"
+            )
+            try:
+                await post_governance_signal(eng, signal)
+                await eng.log("seal_broadcast", room=eng.band_room_id, tail=tail)
+                broadcast = " Seal posted to the Band room."
+            except Exception as e:
+                await eng.log("error", tool="seal_broadcast", room=eng.band_room_id, error=str(e))
+                broadcast = f" (Band broadcast failed: {e})"
         return (
-            f"Sealed bundle: {path.name} | chain tail {eng.ledger.tail_hash_hex[:16]}… | "
+            f"Sealed bundle: {path.name} | chain tail {tail[:16]}… | "
             f"{len(eng.findings)} findings. Verify offline with: "
-            f"python -m governance.verify {path.name}"
+            f"python -m governance.verify {path.name}" + broadcast
         )
 
     class VerifyChainInput(BaseModel):

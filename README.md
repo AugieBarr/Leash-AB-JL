@@ -55,6 +55,8 @@ The differentiator is implemented first and runs entirely offline (no Band, no A
 - [`governance/capability.py`](governance/capability.py) — restricted child capabilities (parent ∩ restriction; empty → deny-all).
 - [`governance/bundle.py`](governance/bundle.py) — seals the verified ledger + public key into a portable, third-party-verifiable bundle (cross-checks the manifest's tail hash + event count against the re-derived chain).
 
+The trust boundaries are stated explicitly — what's enforced in code, what assumes single-process colocation, and what stops if Band drops — in [`THREAT_MODEL.md`](THREAT_MODEL.md).
+
 Quick proof that tampering is detectable:
 
 ```bash
