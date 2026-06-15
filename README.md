@@ -78,6 +78,15 @@ python scripts/control_demo.py
 # then open http://localhost:8089/?engagement=control-demo and hit APPROVE / HALT
 ```
 
+**Prove the trail cannot be rewritten.** Fork a sealed engagement, alter a single already-signed event, and watch it get caught — the Ed25519 signature no longer matches the mutated payload, so the chain names the exact event and the viewer renders it red:
+
+```bash
+python scripts/tamper_demo.py                       # flips one signed event → "TAMPERED — bad signature at seq N"
+python -m viewer.viewer --engagement tamper-demo    # the viewer flips VERIFIED → TAMPERED and lights that event red
+```
+
+Detection needs only the public key shipped in the bundle — never the private key. That is the whole trust thesis, made visible.
+
 ---
 
 ## Quickstart
