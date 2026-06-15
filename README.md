@@ -19,11 +19,15 @@ Leash is the **governed** swarm — the anti-HexStrike. The bold move is *where*
 | Field's gap | What Leash does on Band |
 | --- | --- |
 | No scope enforcement | A fail-closed scope guard + a ScopeWarden agent that issues each specialist a restricted capability it cannot exceed |
-| No audit trail | Every agent action becomes a Band event, hash-chained into a tamper-evident ledger and sealed into a verifiable bundle |
+| No audit trail | Every governed action is hash-chained (Ed25519) into a tamper-evident ledger by a single writer and sealed into a verifiable bundle — an in-process chain, so it holds even if Band drops |
 | "Dropping your tables" | A **human approval gate** before any destructive action, and a Commander kill-switch that ejects the swarm |
 | Static recon→scan→exploit pipelines | **Dynamic recruit-on-discovery** — recon finds a SQLi surface and the SQLi specialist joins the room live |
 
 All offensive activity targets **deliberately-vulnerable, authorized lab targets only** (OWASP Juice Shop). Scope enforcement is a hard, built-in gate — not an afterthought.
+
+## Who it's for
+
+A security-engineering lead whose SOC 2 or PCI-DSS program has to produce a penetration-test evidence package every quarter — proof of exactly what was tested, when, and who authorized each exploit step. Today that record is assembled by hand and trusted because the operator says so. Leash emits it as a byproduct: an Ed25519-signed, hash-chained bundle the customer or auditor can verify cold, with only the public key shipped inside it — **no trust in the operator required.** The governance core is a clean-room port of a production Elixir audit system (`DiogenesCore.AuditLog`), not hackathon scaffolding.
 
 ---
 
@@ -33,7 +37,7 @@ All offensive activity targets **deliberately-vulnerable, authorized lab targets
                   BAND CASE ROOM  (every agent holds a persistent WebSocket; the human sees all)
   TIER 0  Human Operator — approves exploitation; holds the kill-switch; reads the live audit stream
   TIER 1  BRAIN AGENTS        Commander · ScopeWarden · Auditor
-  TIER 2  SPECIALISTS         Recon Scout · SQLi Hunter · [XSS Hunter] · [Auth Breaker] · Reporter
+  TIER 2  SPECIALISTS         Recon Scout · SQLi Hunter · Reporter
                               (recruited into the room per discovery)
   TIER 3  WORKER TOOL-JOBS    http_probe · crawl · sqlmap · ffuf  (semaphore-bounded fan-out)
 ```
