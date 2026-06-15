@@ -47,3 +47,34 @@ def test_sqlmap_injection_marker_stripped():
 
 def test_parse_target_defaults_https_port():
     assert parse_target("https://localhost/").port == 443
+
+
+def narrowed_cap():
+    return root_capability("eng", ScopeSpec.of(["localhost"], [3000], ["/rest/products"]))
+
+
+def test_path_prefix_boundary_blocks_sibling():
+    # A /rest/products cap must NOT leak to a sibling whose name merely shares the prefix.
+    cap = narrowed_cap()
+    with pytest.raises(ScopeViolationError):
+        scope_guard("http://localhost:3000/rest/products-evil", cap)
+    with pytest.raises(ScopeViolationError):
+        scope_guard("http://localhost:3000/rest/productsX", cap)
+
+
+def test_path_prefix_allows_self_and_subpath():
+    cap = narrowed_cap()
+    assert scope_guard("http://localhost:3000/rest/products", cap).path == "/rest/products"
+    assert scope_guard("http://localhost:3000/rest/products/search", cap).path == "/rest/products/search"
+
+
+def test_dot_dot_traversal_blocked():
+    # /rest/products/../admin normalizes to /admin, which is out of the narrowed scope.
+    cap = narrowed_cap()
+    with pytest.raises(ScopeViolationError):
+        scope_guard("http://localhost:3000/rest/products/../admin", cap)
+
+
+def test_parse_target_normalizes_dot_dot():
+    assert parse_target("http://localhost:3000/rest/products/../admin").path == "/admin"
+    assert parse_target("http://localhost:3000/a//b/./c").path == "/a/b/c"
