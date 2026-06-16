@@ -21,6 +21,7 @@ _RECON_CANDIDATES = [
     "/rest/admin/application-version",
     "/api/Users",
     "/rest/user/login",
+    "/rest/chatbot/status",
 ]
 
 
