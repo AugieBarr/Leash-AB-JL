@@ -77,6 +77,9 @@ where the swarm lives. **You cannot forge this record. Leash — governed, on Ba
 > (`python -m swarm.launcher --engagement-id demo --seed --brain-only`) shows the Commander
 > recruiting the Recon Scout — good for ~10s at the top. It's slow and nondeterministic, so
 > it stays a bonus, never the spine; the seal-in-room beat is the reliable Band proof.
+> Pre-check before any live intercut: `python connect_test.py` → `8/8 agents connected`
+> confirms every agent authenticates on Band (no LLM cost, clean disconnect) — so the
+> launcher run won't stall on a connectivity surprise on camera.
 
 ---
 
