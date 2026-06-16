@@ -5,7 +5,7 @@ open engagement -> scope -> recon -> recruit+scope SQLi specialist -> human
 approval -> confirm the injection -> seal the tamper-evident bundle -> verify it.
 
 The live swarm (``python -m swarm.launcher``) narrates this exact flow through a
-Band room with the seven agents; this script is the no-API-key proof that the
+Band room with the eight agents; this script is the no-API-key proof that the
 governance + tooling underneath actually works on the real target.
 
     python scripts/offline_demo.py

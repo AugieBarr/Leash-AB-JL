@@ -27,6 +27,10 @@ leash-xss-hunter:
   agent_id: "<uuid-from-band>"
   api_key: "<api-key-from-band>"
 
+leash-auth-breaker:
+  agent_id: "<uuid-from-band>"
+  api_key: "<api-key-from-band>"
+
 leash-reporter:
   agent_id: "<uuid-from-band>"
   api_key: "<api-key-from-band>"

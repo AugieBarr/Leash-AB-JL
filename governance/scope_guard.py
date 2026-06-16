@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import posixpath
 from typing import Optional
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 from governance.capability import Capability, Target, check_capability
 
@@ -29,11 +29,17 @@ def parse_target(url: str) -> Target:
         port = parts.port
     else:
         port = 443 if parts.scheme == "https" else 80
-    # Normalize away '..' and duplicate slashes BEFORE the prefix check, so a
-    # narrowed path cap cannot be escaped by /rest/products/../admin (which the
-    # target server would itself resolve to /admin). posixpath.normpath leaves
-    # percent-encoded bytes untouched — only the server decodes those.
-    path = posixpath.normpath((parts.path or "/").replace("*", ""))
+    # Percent-DECODE, then normalize away '..' and duplicate slashes BEFORE the
+    # prefix check. The target server URL-decodes the path and resolves '..'
+    # itself, so a narrowed /rest/products cap must not be escapable by *encoding*
+    # the traversal:
+    #     /rest/products/%2e%2e/admin   (%2e%2e -> '..')
+    #     /rest/products%2f..%2fadmin   (%2f    -> '/')
+    # both resolve to /rest/admin and must fail closed. We decode once — matching
+    # a server that URL-decodes the path a single time (double-encoding like
+    # %252e stays literal here, exactly as such a server would see it).
+    decoded = unquote((parts.path or "/").replace("*", ""))
+    path = posixpath.normpath(decoded)
     if not path.startswith("/"):
         path = "/"
     return Target(host=host, port=port, path=path)

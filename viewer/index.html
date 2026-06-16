@@ -381,11 +381,17 @@
     { id: "leash-recon-scout", name: "Recon Scout", role: "surface mapping" },
     { id: "leash-sqli-hunter", name: "SQLi Hunter", role: "exploitation" },
     { id: "leash-xss-hunter",  name: "XSS Hunter",  role: "exploitation" },
+    { id: "leash-auth-breaker", name: "Auth Breaker", role: "exploitation" },
     { id: "leash-reporter",    name: "Reporter",    role: "reporting" },
   ];
 
   // Map an offensive tool to the specialist that runs it (gate/result attribution).
-  const HUNTER_FOR_TOOL = (tool) => (tool || "").includes("xss") ? "leash-xss-hunter" : "leash-sqli-hunter";
+  const HUNTER_FOR_TOOL = (tool) => {
+    const t = tool || "";
+    if (t.includes("xss")) return "leash-xss-hunter";
+    if (t.includes("auth")) return "leash-auth-breaker";
+    return "leash-sqli-hunter";
+  };
 
   function qsEngagement() { return new URLSearchParams(location.search).get("engagement") || ""; }
   const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
@@ -411,11 +417,13 @@
     if (rec.kind === "tool_result") {
       if (tool === "manual_sqli_probe" || tool === "run_sqlmap") return "leash-sqli-hunter";
       if (tool === "manual_xss_probe") return "leash-xss-hunter";
+      if (tool === "manual_auth_bypass_probe") return "leash-auth-breaker";
       return "leash-recon-scout";
     }
     if (rec.kind === "error") {
       if (tool.includes("sqli") || tool.includes("sqlmap")) return "leash-sqli-hunter";
       if (tool.includes("xss")) return "leash-xss-hunter";
+      if (tool.includes("auth")) return "leash-auth-breaker";
       return "leash-recon-scout";
     }
     return null;
@@ -431,6 +439,9 @@
     if (tool === "manual_xss_probe" && p.confirmed === true)
       out.push({ sev: "high", type: "Cross-Site Scripting (XSS)", endpoint: p.path || "", seq: rec.seq,
         evidence: "marked <svg/onload> payload reflected unescaped in " + (p.content_type || "an HTML response") + " (OWASP A03)" });
+    if (tool === "manual_auth_bypass_probe" && p.confirmed === true)
+      out.push({ sev: "critical", type: "Broken Authentication", endpoint: p.path || "", seq: rec.seq,
+        evidence: "SQL-injection login bypass returned a session token where the baseline was rejected (OWASP A07)" });
     if (tool === "security_headers_probe" && Array.isArray(p.missing)) {
       const crit = p.missing.filter((h) => CRIT_HEADERS.has(h));
       if (crit.length) out.push({ sev: "medium", type: "Security Misconfiguration", endpoint: p.url || "", seq: rec.seq,

@@ -1,7 +1,7 @@
 """Leash swarm launcher.
 
 Opens an engagement (one tamper-evident ledger + root capability), builds the
-seven agents wired to it, and runs them in one event loop. They wait for the
+eight agents wired to it, and runs them in one event loop. They wait for the
 operator to mention @leash-commander in a Band room to begin.
 
     python -m swarm.launcher --engagement-id demo-01

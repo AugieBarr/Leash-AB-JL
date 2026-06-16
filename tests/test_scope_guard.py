@@ -80,3 +80,20 @@ def test_parse_target_normalizes_dot_dot():
     assert parse_target("http://localhost:3000/rest/products/../admin").path == "/rest/admin"
     assert parse_target("http://localhost:3000/rest/products/../../admin").path == "/admin"
     assert parse_target("http://localhost:3000/a//b/./c").path == "/a/b/c"
+
+
+def test_percent_encoded_traversal_decoded_and_blocked():
+    # The server URL-decodes the path, so an ENCODED traversal must be decoded
+    # before the prefix check or a /rest/products cap leaks to /rest/admin.
+    cap = narrowed_cap()
+    with pytest.raises(ScopeViolationError):
+        scope_guard("http://localhost:3000/rest/products/%2e%2e/admin", cap)
+    with pytest.raises(ScopeViolationError):
+        scope_guard("http://localhost:3000/rest/products%2f..%2fadmin", cap)
+
+
+def test_parse_target_percent_decodes_path():
+    assert parse_target("http://localhost:3000/rest/products/%2e%2e/admin").path == "/rest/admin"
+    assert parse_target("http://localhost:3000/rest/products%2f..%2fadmin").path == "/rest/admin"
+    # Mixed-case encoding decodes too.
+    assert parse_target("http://localhost:3000/rest/%2E%2E/admin").path == "/admin"
