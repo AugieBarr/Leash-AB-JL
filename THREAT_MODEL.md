@@ -70,6 +70,29 @@ halt broadcast, with capabilities issued as signed (JWT-style) tokens each speci
 present. The capability model ([`governance/capability.py`](governance/capability.py)) is
 already token-shaped for this.
 
+## Boundaries surfaced by adversarial review (2026-06-16)
+
+A multi-agent security audit (38 agents; every critical/high finding re-verified against
+the code) surfaced the boundaries below. None is remotely exploitable in the v1 model — the
+swarm and its Control Center run on **one operator's host**, bound to `127.0.0.1` — but each
+is named here with its hardening path, because a governance product should state its own
+edges rather than wait for a judge to find them.
+
+| Boundary | Why it is bounded in v1 | Hardening path |
+|---|---|---|
+| **Control Center `/control` has no token auth** — any process on the operator's host can POST `approve`/`halt` ([`viewer/viewer.py`](viewer/viewer.py)); the Origin-less allowance is deliberate so the local recording scripts can drive the gate. | The server binds `127.0.0.1`; a local process with that access already holds the private key and the decision files, so forging an approval is not an escalation. | A shared `X-Leash-Token` (written `0600` beside the ledger on viewer start), required on every `/control` POST — closing it for multi-user / remote operation. |
+| **The viewer loads the private key to derive the public key** ([`viewer/viewer.py`](viewer/viewer.py) `_pubkey_for`), though it only ever verifies, never signs. | The private key already sits on the operator's host beside the ledger, so the local viewer reading it is not a new exposure. | A sibling `engagement_ed25519.pub` for the viewer to read instead, so the operator console provably cannot sign. |
+| **Approval persists per-endpoint, not per-`(tool, endpoint)`** ([`swarm/engagement.py`](swarm/engagement.py) `is_approved`): one approval for a path lets a specialist run further payloads/tools on it without re-prompting. | A deliberate scope choice — the operator authorizes *exploiting this endpoint*; the normalized-path key cannot be widened by query/`*`/`..` decoration. | Keying `approvals` by `(tool, endpoint)`, or a time-box — the one-line change is named in the code comment. |
+| **The kill-switch stops new subprocesses, not an in-flight one** ([`tools/_subprocess.py`](tools/_subprocess.py) `scoped_run`): a halt refuses to *spawn*; an already-running `sqlmap` finishes or hits its per-tool timeout (≤120 s). | Every *new* offensive tool is refused instantly in-process; the only thing that outlives a halt is a subprocess already executing, which is time-boxed. | Racing `proc.communicate()` against an `eng.halted` poll, killing the process on halt. |
+| **One open approval gate at a time** ([`swarm/control_channel.py`](swarm/control_channel.py)): a single `decision.json` per engagement assumes one operator and one specialist exploiting at a time (the role briefs enforce this). | An `approve` only satisfies its own `gate_id` and a `halt` is global, so a stale decision cannot cross-satisfy a later gate. | Per-gate `decision-<gate_id>.json` files for truly simultaneous specialist gates. |
+
+**Closed during this review:** resuming a ledger to append now verifies the whole chain
+first (`verify_on_resume`, [`governance/audit_ledger.py`](governance/audit_ledger.py)), so a
+ledger tampered between runs is refused rather than silently extended; and the Commander's
+`recruitspecialist` now rejects any `agent_label` outside the known roster, so a
+prompt-injected Commander cannot pull an arbitrary agent into the room
+([`agents/agent_tools.py`](agents/agent_tools.py)).
+
 ## The three questions, answered
 
 **"If Band went down, what governance stops working?"**
