@@ -49,8 +49,6 @@ async def _boot_check(eng) -> None:
 async def _watch_and_eject(eng) -> None:
     """Operator KILL button → in-process halt → Band-side room eject. Lives in the
     launcher (not control_channel) so the offline control channel stays Band-free."""
-    from swarm.control_channel import watch_halt
-
     await watch_halt(eng)  # returns once a halt decision lands
     if not eng.band_room_id:
         return
