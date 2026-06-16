@@ -7,7 +7,7 @@ cites the file that implements it.
 
 ## Deployment model (v1)
 
-The swarm runs as **one process, one asyncio event loop, on one host.** All six agents'
+The swarm runs as **one process, one asyncio event loop, on one host.** All eight agents'
 tool handlers close over a single shared `Engagement` object — one tamper-evident ledger,
 one capability registry, one findings list, one `halted` flag
 ([`swarm/engagement.py`](swarm/engagement.py)). Agents coordinate *through Band* (a shared
