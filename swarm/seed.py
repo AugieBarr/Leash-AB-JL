@@ -5,8 +5,8 @@ and optionally posts the kickoff message that @mentions the Commander to start.
 Uses the Band agent API keys only (no Anthropic key needed to create/seed a room).
 
 For the human-in-the-loop demo the operator can instead create the room in the
-Band UI, add the six agents, and type the kickoff — that keeps a real human in
-the room for the approval gate. This module is the scriptable/headless path.
+Band UI, add the agents, and type the kickoff — that keeps a real human in the
+room for the approval gate. This module is the scriptable/headless path.
 
     python -m swarm.seed --target localhost:3000
     python -m swarm.seed --no-kickoff      # just create the room + add agents
@@ -35,6 +35,8 @@ SWARM = [
     "leash-auditor",
     "leash-recon-scout",
     "leash-sqli-hunter",
+    "leash-xss-hunter",
+    "leash-auth-breaker",
     "leash-reporter",
 ]
 

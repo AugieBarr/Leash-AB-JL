@@ -26,6 +26,15 @@ Flow:
 
 This module has no Band-SDK imports, so the whole mechanism is unit-testable
 offline — like everything under ``governance/``.
+
+Concurrency assumption: there is ONE ``decision.json`` per engagement, so the gate
+is designed for one open approval at a time — the Commander recruits and runs one
+specialist's exploitation step before the next, which the role briefs enforce. A
+``halt`` is global and resolves any waiting gate; an ``approve`` only satisfies the
+gate whose ``gate_id`` it names, so a stale approval can't carry over. True
+*simultaneous* gates from two specialists would need per-gate decision files
+(``decision-<gate_id>.json``); that is a deliberate non-goal for the single-operator
+demo, not an oversight.
 """
 from __future__ import annotations
 
@@ -105,6 +114,28 @@ async def await_decision(
         if time.monotonic() >= deadline:
             return "halt"
         await asyncio.sleep(poll)
+
+
+async def enforce_gate(
+    eng, *, tool: str, endpoint: str = "", detail: str = "", timeout: float = 600.0, poll: float = 0.4
+) -> bool:
+    """The human approval gate, enforced in code. Opens a gate, BLOCKS on the
+    operator's Control Center decision, and returns ``True`` only on an explicit
+    ``approve`` for *this* gate — recording the approval into the engagement (and
+    the signed chain) on the way through. Any other outcome (``halt`` or timeout)
+    engages the kill-switch and returns ``False``: the gate never defaults open.
+
+    Offensive tools call this before they touch the target, so exploitation
+    cannot proceed without a real operator decision — it is not a behaviour the
+    agent is merely told to follow."""
+    gate = await request_approval(eng, tool=tool, endpoint=endpoint, detail=detail)
+    decision = await await_decision(eng, gate, poll=poll, timeout=timeout)
+    if decision != "approve":
+        if not eng.halted:
+            await eng.halt(f"operator halted at approval gate for {tool}")
+        return False
+    await eng.record_approval(endpoint, gate_id=gate, operator="operator", tool=tool)
+    return True
 
 
 async def watch_halt(eng, *, poll: float = 0.5) -> str:

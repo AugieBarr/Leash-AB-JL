@@ -69,7 +69,7 @@ async def test_in_scope_blocks_at_human_gate_on_halt(tmp_path):
     out = await probe(model(path="/rest/products/search?q="))
     await halter
 
-    assert "BLOCKED at the human gate" in out
+    assert "human approval required" in out  # the in-tool gate refused, fail-closed
     assert eng.halted
     kinds = _kinds(tmp_path, "gate-halt")
     assert "approval_requested" in kinds  # the gate was opened

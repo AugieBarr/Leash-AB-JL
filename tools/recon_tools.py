@@ -20,6 +20,7 @@ _RECON_CANDIDATES = [
     "/api/Products",
     "/rest/admin/application-version",
     "/api/Users",
+    "/rest/user/login",
 ]
 
 
@@ -84,8 +85,11 @@ def recon_tools(eng):
         lines = "\n".join(f"  {f}" for f in found)
         return (
             f"Discovered endpoints:\n{lines}\n"
-            "The /rest/products/search?q= endpoint reflects the q parameter into a SQL "
-            "query — a strong SQL injection candidate. Recommend recruiting the SQLi specialist."
+            "Candidate vulnerability classes for the Commander to route to specialists:\n"
+            "- /rest/products/search?q= flows the q parameter into a SQL query — a SQL injection "
+            "candidate (recruit the SQLi Hunter) and a reflected-input / XSS candidate (recruit the XSS Hunter);\n"
+            "- /rest/user/login is an authentication endpoint that may be bypassable — an auth candidate "
+            "(recruit the Auth Breaker)."
         )
 
     return [(HttpProbeInput, httpprobe), (CrawlTargetInput, crawltarget)]

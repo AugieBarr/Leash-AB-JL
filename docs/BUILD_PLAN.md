@@ -50,7 +50,7 @@ A public MIT repo + 3-min demo where a tiered agent swarm coordinates through a 
   TIER 1  BRAIN AGENTS (persistent WS, Sonnet)
           Commander (orchestrate/recruit)   ScopeWarden (capabilities)   Auditor (chain + seal)
   TIER 2  SPECIALISTS (recruited per-discovery, Sonnet)
-          Recon Scout   SQLi Hunter   [XSS Hunter]   [Auth Breaker]   Reporter
+          Recon Scout   SQLi Hunter   XSS Hunter   Auth Breaker   Reporter
   TIER 3  WORKER TOOL-JOBS (asyncio tasks, NOT Band agents, Haiku/deterministic)
           http_probe · crawl · sqlmap · ffuf · jwt_crack   (semaphore-bounded fan-out)
 ```
@@ -78,8 +78,8 @@ A public MIT repo + 3-min demo where a tiered agent swarm coordinates through a 
 | Recon Scout | `leash-recon-scout` | Sonnet | surface mapping | `http_probe`, `crawl_target`, `security_headers_probe`, `exposure_probe` · `js_enum` *(stretch)* |
 | SQLi Hunter | `leash-sqli-hunter` | Sonnet | SQL injection | `run_sqlmap`, `manual_sqli_probe` |
 | Reporter | `leash-reporter` | Sonnet | report synthesis | `render_findings_report`, `read_audit_bundle` |
-| XSS Hunter *(stretch)* | `leash-xss-hunter` | Sonnet | XSS | `run_dalfox`, `manual_xss_probe` |
-| Auth Breaker *(stretch)* | `leash-auth-breaker` | Sonnet | auth/JWT/IDOR | `jwt_crack`, `brute_login`, `idor_fuzz` |
+| XSS Hunter **(built)** | `leash-xss-hunter` | Sonnet | reflected XSS | `manual_xss_probe` (approval-gated + scope-guarded; unit-tested) · `run_dalfox` *(stretch)* |
+| Auth Breaker **(built)** | `leash-auth-breaker` | Sonnet | auth bypass (A07) | `manual_auth_bypass_probe` (approval-gated + scope-guarded; unit-tested) · `jwt_crack`, `idor_fuzz` *(stretch)* |
 
 Worker tool-jobs are `asyncio.create_task` launched by specialists, semaphore-bounded, each gated by `scope_guard` before exec — **not** Band agents.
 
@@ -103,7 +103,7 @@ genesis hash_prev = b"\x00" * 32
 
 **`bundle.py`** — port of `polis_code_memory/attested_store.ex` seal. `export_bundle(id)`: runs `verify_chain()` (refuses to seal a tampered chain) → writes manifest `{id, target, times, chain_tail_hash, event_count, findings}` → tars NDJSON + manifest + pubkey → emits `.sha256`. Offline CLI `python -m leash.governance.verify <bundle.tar.gz>` → `Chain OK — N events, no tampering`.
 
-**Human approval gate** *(as built: enforced at the LLM/prompt level, not a code function)* — pure Band messaging, no polling API: the SQLi Hunter's role prompt requires it to post `@operator` + the exact action and wait for an "approved"/"halt" reply before calling any exploit tool; "halt" → Commander `issuekillswitch` (hard in-process stop) + remove participants. The reply is captured in the room transcript; the decision is cross-logged to the chain.
+**Human approval gate** *(now enforced in code, not on trust)* — the offensive tools call `enforce_gate` (`swarm/control_channel.py`), which opens a gate in the operator's Control Center and BLOCKS until the operator clicks APPROVE; a HALT or a timeout makes the tool refuse in-process and engages the kill-switch (it never defaults open). The SQLi Hunter's prompt still narrates the request in-room (`@operator` + the exact action), but the gate no longer depends on the model honouring it. Each approval is bound into the tamper-evident chain as a signed `approval` event (who approved what), and `watch_halt` runs alongside the live swarm so the Control Center kill-switch is live throughout.
 
 ---
 
@@ -155,7 +155,7 @@ All MIT-clean (no Dilithium NIF / Logos dep). The chain formula above is exact �
 - **Jun 18.** README (diagram, GIF, install) + polish + full dry runs (auto-approve smoke, then human-in-loop) + scale screenshots done. *Augie: video recorded + slides final.* Buffer remaining.
 - **Jun 19 AM.** Final record + submission form + link check + final commit landed by ~10:00 ET (1h buffer before 11:00).
 
-**Stretch (only if ahead):** Elixir ScopeWarden hitting Band's REST Agent API (cross-runtime "three frameworks in one room" beat — reuses Josh's hardened Elixir directly); XSS Hunter + Auth Breaker; `viewer/` live SSE case-viewer; 30→50-agent scale.
+**Stretch (only if ahead):** Elixir ScopeWarden hitting Band's REST Agent API (cross-runtime "three frameworks in one room" beat — reuses Josh's hardened Elixir directly); deeper specialist tools (`jwt_crack`, `idor_fuzz`, `run_dalfox`) now that SQLi/XSS/Auth specialists are built; `viewer/` live SSE case-viewer; 30→50-agent scale.
 
 ---
 

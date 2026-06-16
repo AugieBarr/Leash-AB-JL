@@ -127,7 +127,8 @@ async def main() -> int:
 
         # The leash holds. Scoped to /rest/products, the SQLi hunter reaches for
         # /ftp — and the fail-closed scope guard refuses it before any request is
-        # sent. The refusal is recorded as a governed event (the Defenses panel).
+        # sent (scope is checked before the gate, so the operator is never even
+        # asked about an out-of-scope reach). Recorded as a governed event.
         print("[SQLi Hunter] manual_sqli_probe /ftp  (out of scope) …")
         print("  " + (await probe(probe_model(path="/ftp"))))
         await asyncio.sleep(pace)
@@ -139,9 +140,10 @@ async def main() -> int:
         # gate is enforced inside the tool (same code path as the live swarm), so
         # calling the probe blocks on the operator's APPROVE / HALT in the Control
         # Center; on halt the tool engages the kill-switch and the probe returns
-        # refused. No external gating here — the tool is the single enforcement point.
+        # refused. The approval is recorded into the signed chain by the gate.
         endpoint = "/rest/products/search?q="
         print("\n[GATE OPEN] manual_sqli_probe is waiting on your APPROVE / HALT in the Control Center …")
+        print("[SQLi Hunter] manual_sqli_probe …")
         print("  " + (await probe(probe_model(path=endpoint))).replace("\n", "\n  "))
         await asyncio.sleep(pace)
 

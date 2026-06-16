@@ -402,8 +402,18 @@
     { id: "leash-auditor",     name: "Auditor",     role: "audit chain" },
     { id: "leash-recon-scout", name: "Recon Scout", role: "surface mapping" },
     { id: "leash-sqli-hunter", name: "SQLi Hunter", role: "exploitation" },
+    { id: "leash-xss-hunter",  name: "XSS Hunter",  role: "exploitation" },
+    { id: "leash-auth-breaker", name: "Auth Breaker", role: "exploitation" },
     { id: "leash-reporter",    name: "Reporter",    role: "reporting" },
   ];
+
+  // Map an offensive tool to the specialist that runs it (gate/result attribution).
+  const HUNTER_FOR_TOOL = (tool) => {
+    const t = tool || "";
+    if (t.includes("xss")) return "leash-xss-hunter";
+    if (t.includes("auth")) return "leash-auth-breaker";
+    return "leash-sqli-hunter";
+  };
 
   function qsEngagement() { return new URLSearchParams(location.search).get("engagement") || ""; }
   const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
@@ -421,13 +431,23 @@
     const p = parse(rec), tool = p.tool || "";
     if (rec.kind === "engagement_open") return "leash-commander";
     if (rec.kind === "capability_issued" || rec.kind === "capability_check") return "leash-scope-warden";
-    if (rec.kind === "approval_requested") return "leash-sqli-hunter";
+    if (rec.kind === "approval_requested") return HUNTER_FOR_TOOL(tool);
     if (rec.kind === "approval") return "operator";
     if (rec.kind === "kill_switch" || rec.kind === "blocked_halted") return "leash-commander";
     if (rec.kind === "report_rendered") return "leash-reporter";
     if (rec.kind === "bundle_sealed" || rec.kind === "chain_verified") return "leash-auditor";
-    if (rec.kind === "tool_result") return (tool === "manual_sqli_probe" || tool === "run_sqlmap") ? "leash-sqli-hunter" : "leash-recon-scout";
-    if (rec.kind === "error") return (tool.includes("sqli") || tool.includes("sqlmap")) ? "leash-sqli-hunter" : "leash-recon-scout";
+    if (rec.kind === "tool_result") {
+      if (tool === "manual_sqli_probe" || tool === "run_sqlmap") return "leash-sqli-hunter";
+      if (tool === "manual_xss_probe") return "leash-xss-hunter";
+      if (tool === "manual_auth_bypass_probe") return "leash-auth-breaker";
+      return "leash-recon-scout";
+    }
+    if (rec.kind === "error") {
+      if (tool.includes("sqli") || tool.includes("sqlmap")) return "leash-sqli-hunter";
+      if (tool.includes("xss")) return "leash-xss-hunter";
+      if (tool.includes("auth")) return "leash-auth-breaker";
+      return "leash-recon-scout";
+    }
     return null;
   }
 
@@ -438,6 +458,12 @@
     if ((tool === "manual_sqli_probe" || tool === "run_sqlmap") && p.injectable === true)
       out.push({ sev: "high", type: "SQL Injection", endpoint: p.path || p.url || "", seq: rec.seq,
         evidence: tool === "run_sqlmap" ? "sqlmap confirmed an injectable parameter" : ("single-quote probe → HTTP " + (p.probe_status ?? "?") + " (baseline " + (p.baseline_status ?? "?") + ")") });
+    if (tool === "manual_xss_probe" && p.confirmed === true)
+      out.push({ sev: "high", type: "Cross-Site Scripting (XSS)", endpoint: p.path || "", seq: rec.seq,
+        evidence: "marked <svg/onload> payload reflected unescaped in " + (p.content_type || "an HTML response") + " (OWASP A03)" });
+    if (tool === "manual_auth_bypass_probe" && p.confirmed === true)
+      out.push({ sev: "critical", type: "Broken Authentication", endpoint: p.path || "", seq: rec.seq,
+        evidence: "SQL-injection login bypass returned a session token where the baseline was rejected (OWASP A07)" });
     if (tool === "security_headers_probe" && Array.isArray(p.missing)) {
       const crit = p.missing.filter((h) => CRIT_HEADERS.has(h));
       if (crit.length) out.push({ sev: "medium", type: "Security Misconfiguration", endpoint: p.url || "", seq: rec.seq,
@@ -549,7 +575,7 @@
   // ----- roster -----
   function rosterStatus(id) {
     if (halted && id === "leash-commander") return "halt";
-    if (pendingGate && pendingGate.resolved === false && id === "leash-sqli-hunter") return "gate";
+    if (pendingGate && pendingGate.resolved === false && id === HUNTER_FOR_TOOL(pendingGate.tool)) return "gate";
     if (id === lastAgent) return "active";
     if ((agentCount.get(id) || 0) > 0) return "engaged";
     return "idle";

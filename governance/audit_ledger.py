@@ -5,8 +5,14 @@ hash formula is identical; the Dilithium signature is replaced by an Ed25519
 signature so a sealed bundle can be verified by anyone holding only the public
 key — no shared secret required.
 
-    sig        = Ed25519_sign(sk, seq_be64 || kind || hash_prev || payload)
-    chain_hash = SHA256(seq_be64 || kind || hash_prev || payload || sig)
+    signing    = seq_be64 || u32(len kind) || kind || hash_prev || u32(len payload) || payload
+    sig        = Ed25519_sign(sk, signing)
+    chain_hash = SHA256(signing || u32(len sig) || sig)
+
+The variable-length fields (``kind``, ``payload``, ``sig``) are length-prefixed so
+the encoding is **injective** — no two distinct ``(kind, payload)`` pairs can ever
+serialize to the same signed bytes (a plain concatenation could, by sliding the
+kind/payload boundary). ``hash_prev`` is a fixed 32 bytes and needs no prefix.
 
 The next event's ``hash_prev`` binds to the previous event's ``chain_hash``, so
 altering any earlier payload, kind, or signature invalidates every following
@@ -45,16 +51,24 @@ def _seq_be64(seq: int) -> bytes:
     return seq.to_bytes(8, "big", signed=False)
 
 
+def _u32(n: int) -> bytes:
+    return n.to_bytes(4, "big", signed=False)
+
+
 def _signing_bytes(seq: int, kind: str, hash_prev: bytes, payload: str) -> bytes:
-    return _seq_be64(seq) + kind.encode("utf-8") + hash_prev + payload.encode("utf-8")
+    # Length-prefix the variable-length fields so the encoding is injective: two
+    # distinct (kind, payload) pairs can never serialize to identical bytes (a bare
+    # concatenation could, by shifting the kind/payload boundary). hash_prev is a
+    # fixed 32 bytes, so it carries no prefix.
+    kb = kind.encode("utf-8")
+    pb = payload.encode("utf-8")
+    return _seq_be64(seq) + _u32(len(kb)) + kb + hash_prev + _u32(len(pb)) + pb
 
 
 def _chain_hash(seq: int, kind: str, hash_prev: bytes, payload: str, sig: bytes) -> bytes:
     h = hashlib.sha256()
-    h.update(_seq_be64(seq))
-    h.update(kind.encode("utf-8"))
-    h.update(hash_prev)
-    h.update(payload.encode("utf-8"))
+    h.update(_signing_bytes(seq, kind, hash_prev, payload))
+    h.update(_u32(len(sig)))
     h.update(sig)
     return h.digest()
 

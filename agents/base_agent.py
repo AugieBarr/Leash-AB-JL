@@ -8,8 +8,8 @@ tools, then ``Agent.create``. The adapter is chosen by ``LEASH_ADAPTER``:
     subscription via the ``claude`` binary; needs **no** ``ANTHROPIC_API_KEY``.
   * ``anthropic`` — uses a raw Anthropic API key (``ANTHROPIC_API_KEY``).
 
-``run_swarm`` runs the whole roster in one event loop (6/6 connect concurrently),
-so they share the in-process Engagement while coordinating through Band.
+``run_swarm`` runs the whole roster in one event loop (all agents connect
+concurrently), so they share the in-process Engagement while coordinating through Band.
 """
 from __future__ import annotations
 
@@ -22,7 +22,10 @@ from band.adapters.claude_sdk import ClaudeSDKAdapter
 from band.config import load_agent_config
 from band.core.types import AdapterFeatures, Emit
 
-DEFAULT_MODEL = "claude-sonnet-4-5-20250929"
+# Current Sonnet — strong tool-use/orchestration at a sane cost for a 7-agent room.
+# The Commander can be bumped to an Opus-tier model via build_agent(model=...) if
+# the live run wants deeper orchestration reasoning.
+DEFAULT_MODEL = "claude-sonnet-4-6"
 
 # Surface each tool_call / tool_result (and the agent's thoughts) into the Band
 # room so the human operator watches the swarm act in real time — the modern

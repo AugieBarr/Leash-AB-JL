@@ -32,9 +32,11 @@ connect_harness --hold 3
 > The worker layer scales toward 1000 concurrent **tasks** by distributing across
 > machines — demonstrated here with a 1000-job fan-out under a hard concurrency
 > cap, plus 200 real scope-guarded probes against the live target. The live
-> **agent** layer is the registered Band agents (six in this build), each on a
-> persistent WebSocket. Full 1000-*agent* WebSocket scale needs Band's enterprise
-> tier; the architecture is unchanged — only the agent count and the WS quota move.
+> **agent** layer is the registered Band agents (eight in this build; the harness
+> reads the roster from `swarm/seed.py`, and the `[6/6]` sample above is a recorded
+> run of the prior six-agent roster), each on a persistent WebSocket. Full
+> 1000-*agent* WebSocket scale needs Band's enterprise tier; the architecture is
+> unchanged — only the agent count and the WS quota move.
 
 The safety property the cap guarantees (`peak_concurrency <= cap`, with a slot
 freed by *task death*, not explicit release) is unit-tested in

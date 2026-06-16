@@ -1,11 +1,14 @@
 """SQLi Hunter tools — confirm and exploit SQL injection on in-scope endpoints.
 
 Every exploitation tool passes through two hard, code-enforced gates before it
-touches the target: the scope guard (fail-closed allowlist) and the human
-approval gate. The approval gate is enforced *here, in the tool* — not left to
-the agent's prompt — so it fires identically in the deterministic demo and in
-the live LLM-driven swarm. ``manual_sqli_probe`` is the fast, reliable
-confirmation; ``run_sqlmap`` is the full tool when installed.
+touches the target: the scope guard (fail-closed allowlist) and the human approval
+gate (``enforce_gate``). Both are enforced *here, in the tool* — not left to the
+agent's prompt — so they fire identically in the deterministic demo and in the
+live LLM-driven swarm. ``manual_sqli_probe`` is the fast, reliable confirmation;
+``run_sqlmap`` is the full tool when installed.
+
+Order is deliberate: scope is checked *before* the gate, so an out-of-scope reach
+is refused by construction without ever bothering the operator.
 """
 from __future__ import annotations
 
@@ -13,43 +16,27 @@ import httpx
 from pydantic import BaseModel, Field
 
 from governance.scope_guard import ScopeViolationError, scope_guard
-from swarm.control_channel import await_decision, read_decision, request_approval
+from swarm.control_channel import enforce_gate
 from tools._subprocess import ensure_leading_slash, scoped_run, tool_available
 
+_GATE_DENIED = (
+    "BLOCKED: human approval required before exploitation. The operator halted "
+    "or did not approve this action at the Control Center gate."
+)
 
-def sqli_tools(eng):
+
+def sqli_tools(eng, *, gate_timeout: float = 600.0, gate_poll: float = 0.4):
     cap = lambda: eng.cap_for("leash-sqli-hunter")  # noqa: E731 (terse local)
 
-    async def _human_gate(tool_name: str, endpoint: str, detail: str) -> str | None:
-        """Code-enforced human approval gate, fired before any exploitation runs.
-
-        Returns ``None`` when cleared to proceed, or a refusal string otherwise.
-        An engagement that pre-authorizes the action (``eng.approvals`` — used by
-        the deterministic offline demo) skips the wait; everyone else blocks on the
-        operator's APPROVE / HALT in the Control Center, and the granted approval is
-        recorded into the tamper-evident chain. Because this lives in the tool, the
-        gate is a property of the code path, not of LLM compliance."""
-        if tool_name in eng.approvals:
-            return None
-        gate = await request_approval(eng, tool=tool_name, endpoint=endpoint, detail=detail)
-        decision = await await_decision(eng, gate)
-        if decision != "approve":
-            if not eng.halted:
-                await eng.halt(f"operator declined exploitation at the human gate ({tool_name})")
-            return f"BLOCKED at the human gate: {tool_name} was not approved by the operator."
-        # Record the approval under the operator the decision actually carried, so an
-        # unattended/automated approval (scripts/auto_approve.py) is never logged as a
-        # human one — the chain stays honest about who approved.
-        rec = read_decision(eng.engagement_id, eng.ledger.dir.parent) or {}
-        await eng.log(
-            "approval",
-            action=tool_name,
-            decision="approved",
-            operator=rec.get("operator") or "operator",
-            gate_id=gate,
+    async def _gate(tool: str, endpoint: str, detail: str) -> bool:
+        """Pass iff the operator has approved this endpoint. If not yet approved,
+        open the Control Center gate and block on their decision — enforced in code
+        so the exploit cannot run on the agent's say-so alone."""
+        if eng.is_approved(endpoint):
+            return True
+        return await enforce_gate(
+            eng, tool=tool, endpoint=endpoint, detail=detail, timeout=gate_timeout, poll=gate_poll
         )
-        eng.approvals.add(tool_name)
-        return None
 
     class ManualSqliProbeInput(BaseModel):
         """Deterministically confirm SQL injection on an in-scope endpoint by comparing a benign value to a single-quote probe."""
@@ -72,12 +59,11 @@ def sqli_tools(eng):
         except ScopeViolationError as e:
             await eng.log("error", tool="manual_sqli_probe", path=base, blocked=str(e))
             return f"BLOCKED by scope guard: {e}"
-
-        gated = await _human_gate(
-            "manual_sqli_probe", base, "single-quote / UNION SQL-injection probe on the search parameter"
-        )
-        if gated:
-            return gated
+        if not await _gate(
+            "manual_sqli_probe", base,
+            "single-quote / UNION SQL-injection probe on the search parameter",
+        ):
+            return _GATE_DENIED
 
         async with httpx.AsyncClient(timeout=10.0) as client:
             benign = await client.get(benign_url)
@@ -115,18 +101,18 @@ def sqli_tools(eng):
         halted = await eng.refuse_if_halted("run_sqlmap")
         if halted:
             return halted
-        url = eng.base_url + ensure_leading_slash(args.path)
+        path = ensure_leading_slash(args.path)
+        url = eng.base_url + path
+        try:
+            scope_guard(url, cap())
+        except ScopeViolationError as e:
+            await eng.log("error", tool="run_sqlmap", path=path, blocked=str(e))
+            return f"BLOCKED by scope guard: {e}"
         if not tool_available("sqlmap"):
-            try:
-                scope_guard(url, cap())
-            except ScopeViolationError as e:
-                return f"BLOCKED by scope guard: {e}"
             await eng.log("tool_result", tool="run_sqlmap", url=url, note="sqlmap not installed; use manual_sqli_probe")
             return "sqlmap is not installed in this environment — use manual_sqli_probe for confirmation."
-
-        gated = await _human_gate("run_sqlmap", url, f"sqlmap enumeration on parameter {args.param}")
-        if gated:
-            return gated
+        if not await _gate("run_sqlmap", path, f"sqlmap enumeration on parameter {args.param}"):
+            return _GATE_DENIED
 
         cmd = ["sqlmap", "-u", url, "-p", args.param, "--batch", "--level=1", "--risk=1", "--technique=U", "--flush-session"]
         result = await scoped_run(cmd, url, cap(), timeout=120.0, halted=eng.halted)

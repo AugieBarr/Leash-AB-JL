@@ -1,7 +1,7 @@
 """Leash swarm launcher.
 
 Opens an engagement (one tamper-evident ledger + root capability), builds the
-six agents wired to it, and runs them in one event loop. They wait for the
+eight agents wired to it, and runs them in one event loop. They wait for the
 operator to mention @leash-commander in a Band room to begin.
 
     python -m swarm.launcher --engagement-id demo-01
@@ -11,12 +11,14 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
 import os
 
 from dotenv import load_dotenv
 
 from agents.base_agent import run_swarm
 from agents.roster import build_swarm
+from swarm.control_channel import watch_halt
 from swarm.engagement import open_engagement
 
 
@@ -89,6 +91,8 @@ async def _run(eng) -> None:
         await run_swarm(agents)
     finally:
         halt_watch.cancel()
+        with contextlib.suppress(asyncio.CancelledError, Exception):
+            await halt_watch
 
 
 async def main() -> None:
