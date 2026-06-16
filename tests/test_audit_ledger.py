@@ -2,9 +2,10 @@
 any post-hoc edit to the chain is detectable."""
 import json
 
+import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
-from governance.audit_ledger import AuditLedger, verify_ndjson
+from governance.audit_ledger import AuditLedger, LedgerTamperError, verify_ndjson
 
 
 async def test_clean_chain_verifies(tmp_path):
