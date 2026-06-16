@@ -112,7 +112,11 @@ def open_engagement(
     root: str = "engagements",
     paths: Optional[list[str]] = None,
 ) -> Engagement:
-    ledger = AuditLedger(engagement_id, root=root)
+    # verify_on_resume: if this opens an EXISTING non-empty ledger (a --resume run),
+    # the chain is verified before we append to it, so a ledger tampered between runs
+    # is refused rather than silently extended. A fresh engagement (the common path,
+    # and every demo/test) has no prior events, so this is a no-op there.
+    ledger = AuditLedger(engagement_id, root=root, verify_on_resume=True)
     scope = ScopeSpec.of([host], [int(port)], tuple(paths) if paths else ("/",))
     cap = root_capability("leash-scope-warden", scope)
     return Engagement(engagement_id, host, int(port), ledger, cap)
