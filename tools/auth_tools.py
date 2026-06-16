@@ -80,17 +80,19 @@ def auth_tools(eng, *, gate_timeout: float = 600.0, gate_poll: float = 0.4):
         if halted:
             return halted
         base = ensure_leading_slash(args.path)
-        if not await _gate(
-            "manual_auth_bypass_probe", base,
-            "SQL-injection authentication-bypass attempt on the login endpoint",
-        ):
-            return _GATE_DENIED
+        # Scope is checked BEFORE the gate (mirrors sqli_tools): an out-of-scope
+        # reach fails closed by construction without ever bothering the operator.
         url = eng.base_url + base
         try:
             scope_guard(url, cap())
         except ScopeViolationError as e:
             await eng.log("error", tool="manual_auth_bypass_probe", path=base, blocked=str(e))
             return f"BLOCKED by scope guard: {e}"
+        if not await _gate(
+            "manual_auth_bypass_probe", base,
+            "SQL-injection authentication-bypass attempt on the login endpoint",
+        ):
+            return _GATE_DENIED
 
         async with httpx.AsyncClient(timeout=10.0) as client:
             baseline = await client.post(url, json={"email": _BASELINE_EMAIL, "password": "leash-wrong-pw"})
