@@ -131,7 +131,7 @@ The "1000-agent" headline refers to the worker-job fan-out layer — demonstrate
 
 - `worker_fanout_bench --workers 1000 --cap 16` → **1000/1000 jobs** complete, **peak concurrency 16** (cap never exceeded), ~1,305 jobs/s.
 - `worker_fanout_bench --workers 200 --target http://localhost:3000` → **200/200 real scope-guarded probes** against the live target, peak 16.
-- `connect_harness` → **6/6 live Band WebSockets** held from one host (the prior six-agent roster; the harness reads the roster from `swarm/seed.py`, so it covers the two new specialists once registered).
+- `connect_test` → **8/8 live Band WebSockets** — the full roster, including the newly-registered XSS Hunter and Auth Breaker, authenticates and holds simultaneously from one host; `connect_harness` soak-tests N held connections, reading the roster from `swarm/seed.py`.
 
 These worker jobs are coroutines, not 1000 live WebSocket agents — the worker layer scales toward 1000 concurrent **tasks** by distributing across machines, while full 1000-*agent* WS scale needs Band's enterprise tier, with no change to the architecture. [`scale_test/README.md`](scale_test/README.md) spells out exactly what each number proves and does not prove.
 
