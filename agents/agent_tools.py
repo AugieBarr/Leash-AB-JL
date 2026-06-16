@@ -17,6 +17,21 @@ from governance.bundle import export_bundle
 from governance.capability import ScopeSpec, issue_capability
 from governance.scope_guard import parse_target
 
+# The non-brain Leash specialists the Commander may recruit on discovery. A guard,
+# not a convention: the target's HTTP responses reach the Commander's context, so a
+# prompt-injected Commander must not be able to pull an arbitrary agent_label into
+# the room. Brain agents (commander/scope-warden/auditor) are seeded at room
+# creation, never recruited; mirror swarm.seed.SWARM minus the brain tier.
+_RECRUITABLE = frozenset(
+    {
+        "leash-recon-scout",
+        "leash-sqli-hunter",
+        "leash-xss-hunter",
+        "leash-auth-breaker",
+        "leash-reporter",
+    }
+)
+
 
 def commander_tools(eng):
     class IssueKillSwitchInput(BaseModel):
