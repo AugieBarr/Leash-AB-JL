@@ -162,7 +162,7 @@ cross-referenced to the sealed audit chain. Post a short summary to the room."""
 
 
 def build_swarm(eng):
-    """Build all eight Band agents wired to the shared Engagement."""
+    """Build all ten Band agents wired to the shared Engagement."""
     return [
         build_agent("leash-commander", COMMANDER, commander_tools(eng)),
         build_agent("leash-scope-warden", SCOPE_WARDEN, scope_warden_tools(eng)),
@@ -171,5 +171,7 @@ def build_swarm(eng):
         build_agent("leash-sqli-hunter", SQLI_HUNTER, sqli_tools(eng)),
         build_agent("leash-xss-hunter", XSS_HUNTER, xss_tools(eng)),
         build_agent("leash-auth-breaker", AUTH_BREAKER, auth_tools(eng)),
+        build_agent("leash-injection-tester", INJECTION_TESTER, injection_tools(eng)),
+        build_agent("leash-data-sentinel", DATA_SENTINEL, exposure_tools(eng)),
         build_agent("leash-reporter", REPORTER, reporter_tools(eng)),
     ]
