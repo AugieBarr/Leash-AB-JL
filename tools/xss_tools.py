@@ -65,17 +65,19 @@ def xss_tools(eng, *, gate_timeout: float = 600.0, gate_poll: float = 0.4):
         if halted:
             return halted
         base = ensure_leading_slash(args.path)
-        if not await _gate(
-            "manual_xss_probe", base,
-            f"reflected-XSS marker injection on the {args.param} parameter",
-        ):
-            return _GATE_DENIED
+        # Scope is checked BEFORE the gate (mirrors sqli_tools): an out-of-scope
+        # reach fails closed by construction without ever bothering the operator.
         probe_url = eng.base_url + base + _PAYLOAD
         try:
             scope_guard(probe_url, cap())
         except ScopeViolationError as e:
             await eng.log("error", tool="manual_xss_probe", path=base, blocked=str(e))
             return f"BLOCKED by scope guard: {e}"
+        if not await _gate(
+            "manual_xss_probe", base,
+            f"reflected-XSS marker injection on the {args.param} parameter",
+        ):
+            return _GATE_DENIED
 
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.get(probe_url)
