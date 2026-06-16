@@ -1,15 +1,23 @@
-"""The Leash roster — role instructions + tool wiring for all eight agents.
+"""The Leash roster — role instructions + tool wiring for all ten agents.
 
 ``build_swarm(eng)`` returns the agents wired to the shared Engagement. Each
 agent's ``custom_section`` is its role brief; Band's own platform-tool guidance
 (send_message / add_participant / send_event) is preserved underneath, so agents
 coordinate through the room while their custom tools do the governed work.
+
+The roster is a *platform*: every specialist is the same governed pattern — scope
+guard, then human approval gate, then a tamper-evident audit append — so a new
+test agent (the Prompt-Injection Tester and Data Exposure Sentinel are the AI-era
+examples) is added by writing one tool factory and one role brief, never by
+loosening the leash.
 """
 from __future__ import annotations
 
 from agents.agent_tools import auditor_tools, commander_tools, reporter_tools, scope_warden_tools
 from agents.base_agent import build_agent
 from tools.auth_tools import auth_tools
+from tools.exposure_tools import exposure_tools
+from tools.injection_tools import injection_tools
 from tools.misconfig_tools import misconfig_tools
 from tools.recon_tools import recon_tools
 from tools.sqli_tools import sqli_tools
