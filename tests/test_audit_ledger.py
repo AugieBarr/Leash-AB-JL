@@ -58,3 +58,27 @@ async def test_third_party_verify_with_public_key_only(tmp_path):
     pubkey = ledger.public_key_bytes()
     result = verify_ndjson(ledger.path, Ed25519PublicKey.from_public_bytes(pubkey))
     assert result.ok, result.detail
+
+
+async def test_resume_for_append_refuses_tampered_ledger(tmp_path):
+    """Resuming a tampered ledger to APPEND is refused, so an attacker who edits the
+    NDJSON between runs cannot launder valid new events onto corrupt history — and
+    tamper-evidence no longer depends on someone remembering to call verify. A
+    read-only open still loads it, so the viewer can still render it TAMPERED."""
+    led = AuditLedger("resume-tamper", root=tmp_path)
+    await led.append("open", json.dumps({"engagement": "demo-01"}))
+    await led.append("tool_result", json.dumps({"injectable": True}))
+
+    # An attacker rewrites a signed event on disk between process runs.
+    lines = led.path.read_text().splitlines()
+    rec = json.loads(lines[0])
+    rec["payload"] = json.dumps({"engagement": "EVIL"})
+    lines[0] = json.dumps(rec)
+    led.path.write_text("\n".join(lines) + "\n")
+
+    # The append path refuses to resume it…
+    with pytest.raises(LedgerTamperError):
+        AuditLedger("resume-tamper", root=tmp_path, verify_on_resume=True)
+    # …but a read-only open still loads it so the viewer can flag it TAMPERED.
+    read_only = AuditLedger("resume-tamper", root=tmp_path)
+    assert not read_only.verify_chain().ok
