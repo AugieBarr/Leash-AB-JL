@@ -12,8 +12,9 @@ reported as *not confirmed* — the tool never claims a finding it cannot stand
 behind, matching the recon/misconfig tools' honesty.
 
 Like the SQLi tools, every probe is (1) refused if the kill-switch is engaged,
-(2) blocked behind the code-enforced human approval gate, and (3) authorized by
-the scope guard before any request leaves — exploitation is not on the agent's
+(2) bounded by the scope guard — an out-of-scope reach is refused by construction
+before the gate is ever opened — and (3) blocked behind the code-enforced human
+approval gate before any request leaves: exploitation is not on the agent's
 say-so alone.
 """
 from __future__ import annotations
