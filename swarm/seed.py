@@ -37,6 +37,8 @@ SWARM = [
     "leash-sqli-hunter",
     "leash-xss-hunter",
     "leash-auth-breaker",
+    "leash-injection-tester",
+    "leash-data-sentinel",
     "leash-reporter",
 ]
 
