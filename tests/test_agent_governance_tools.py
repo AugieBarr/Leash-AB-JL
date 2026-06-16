@@ -3,7 +3,7 @@
 These cover the governance tools the live swarm calls — issuing/checking
 capabilities and sealing/verifying the chain — without any Band or LLM.
 """
-from agents.agent_tools import auditor_tools, scope_warden_tools
+from agents.agent_tools import auditor_tools, commander_tools, scope_warden_tools
 from swarm.engagement import open_engagement
 
 
