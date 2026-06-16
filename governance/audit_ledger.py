@@ -179,7 +179,9 @@ class AuditLedger:
 
         Does NOT verify signatures — it recomputes ``chain_hash`` values
         mechanically to advance the tail pointer. Call ``verify_chain()`` for the
-        full integrity proof.
+        full integrity proof; the append path (``open_engagement`` →
+        ``verify_on_resume=True``) runs that verification automatically when it
+        resumes a non-empty ledger, so a tampered chain is refused, not extended.
         """
         if not self.path.exists():
             return 0, GENESIS
