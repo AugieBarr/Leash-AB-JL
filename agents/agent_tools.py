@@ -74,6 +74,14 @@ def commander_tools(eng):
         )
 
     async def recruitspecialist(args: RecruitSpecialistInput) -> str:
+        if args.agent_label not in _RECRUITABLE:
+            # Refused in code before any lookup or Band call — even a prompt-injected
+            # Commander can only ever recruit the known, governed specialist roster.
+            await eng.log("error", tool="recruit_specialist", agent=args.agent_label, error="not a recruitable specialist")
+            return (
+                f"RECRUIT REFUSED: {args.agent_label!r} is not a recruitable Leash specialist "
+                f"(allowed: {', '.join(sorted(_RECRUITABLE))})."
+            )
         if not eng.band_room_id:
             return "Cannot recruit: this engagement is not bound to a Band room (launch with --seed)."
         # Lazy import so governance-only contexts (and tests) need no Band SDK.
