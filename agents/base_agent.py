@@ -3,8 +3,8 @@
 ``build_agent`` wires a Band ``AnthropicAdapter`` (role instructions via
 ``custom_section`` so Band's platform-tool guidance is preserved) to a set of
 role-specific custom tools, then ``Agent.create``. ``run_swarm`` runs the whole
-roster in one event loop (proven: 6/6 connect concurrently), so they share the
-in-process Engagement while coordinating through Band.
+roster in one event loop, so they share the in-process Engagement while
+coordinating through Band.
 """
 from __future__ import annotations
 
@@ -15,7 +15,10 @@ from band import Agent
 from band.adapters.anthropic import AnthropicAdapter
 from band.config import load_agent_config
 
-DEFAULT_MODEL = "claude-sonnet-4-5-20250929"
+# Current Sonnet — strong tool-use/orchestration at a sane cost for a 7-agent room.
+# The Commander can be bumped to an Opus-tier model via build_agent(model=...) if
+# the live run wants deeper orchestration reasoning.
+DEFAULT_MODEL = "claude-sonnet-4-6"
 
 
 def build_agent(label: str, role_instructions: str, tools: list, *, model: str = DEFAULT_MODEL):

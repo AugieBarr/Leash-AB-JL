@@ -87,7 +87,17 @@ class Engagement:
     def is_approved(self, path: str) -> bool:
         """Has the operator approved exploitation of this endpoint? The offensive
         tools check this in code — the gate is not merely something the agent is
-        prompted to honour."""
+        prompted to honour.
+
+        Granularity is **per-endpoint and persists for the engagement** — a
+        deliberate product choice: the operator authorizes *exploiting this
+        endpoint*, after which a specialist may probe it (e.g. a manual probe
+        then sqlmap on the same path) without re-prompting on every payload. The
+        scope is the normalized path (query string dropped), so the approval can't
+        be widened by query/`*`/`..` decoration. If finer control is ever needed,
+        key ``approvals`` by ``(tool, endpoint)`` or add a time-box here; nothing
+        else has to change because every offensive tool funnels through this check.
+        """
         return self.approval_key(path) in self.approvals
 
 

@@ -19,7 +19,7 @@ Leash is the **governed** swarm — the anti-HexStrike. Band gives it exactly th
 | No scope enforcement | A fail-closed scope guard + a ScopeWarden agent that issues each specialist a restricted capability it cannot exceed |
 | No audit trail | Every agent action becomes a Band event, hash-chained into a tamper-evident ledger and sealed into a verifiable bundle |
 | "Dropping your tables" | A **human approval gate** before any destructive action, and a Commander kill-switch that ejects the swarm |
-| Static recon→scan→exploit pipelines | **Dynamic recruit-on-discovery** — recon finds a SQLi surface and the SQLi specialist joins the room live |
+| Static recon→scan→exploit pipelines | **Dynamic recruit-on-discovery** — recon classifies the surface and the Commander recruits the *matching* specialist live: a SQLi surface pulls in the SQLi Hunter, a reflected-input surface the XSS Hunter |
 
 All offensive activity targets **deliberately-vulnerable, authorized lab targets only** (OWASP Juice Shop). Scope enforcement is a hard, built-in gate — not an afterthought.
 
@@ -31,12 +31,12 @@ All offensive activity targets **deliberately-vulnerable, authorized lab targets
                   BAND CASE ROOM  (every agent holds a persistent WebSocket; the human sees all)
   TIER 0  Human Operator — approves exploitation; holds the kill-switch; reads the live audit stream
   TIER 1  BRAIN AGENTS        Commander · ScopeWarden · Auditor
-  TIER 2  SPECIALISTS         Recon Scout · SQLi Hunter · [XSS Hunter] · [Auth Breaker] · Reporter
+  TIER 2  SPECIALISTS         Recon Scout · SQLi Hunter · XSS Hunter · [Auth Breaker] · Reporter
                               (recruited into the room per discovery)
   TIER 3  WORKER TOOL-JOBS    http_probe · crawl · sqlmap · ffuf  (semaphore-bounded fan-out)
 ```
 
-Band's `@mention` routing means a 30-agent room never floods every agent — each wakes only when called — so the tiered swarm *fits* Band rather than fighting it.
+Band's `@mention` routing means a 30-agent room never floods every agent — each wakes only when called — so the tiered swarm *fits* Band rather than fighting it. Two offensive specialists (SQLi + XSS) make recruitment a *real* matching decision: a SQL-injection surface recruits `@leash-sqli-hunter`, a reflected-input surface recruits `@leash-xss-hunter`. (`[Auth Breaker]` is bracketed: planned, not built.)
 
 ---
 
@@ -63,7 +63,7 @@ Leash ships a zero-dependency **operator Control Center** ([`viewer/`](viewer/))
 
 - **Drive the engagement from the browser.** The human approval gate and the kill-switch are *operated from the UI*. When a specialist requests an exploitation step the gate opens; the operator clicks **Approve** or **Halt**, and the **Kill Switch** is live the whole time.
 - **Watch vulnerabilities land.** A severity-ranked findings feed surfaces each confirmed issue as it is discovered — SQL injection, security misconfiguration, sensitive exposure — with OWASP class, endpoint, and evidence, derived live from the audit stream.
-- **See the swarm.** A roster shows all six agents + the operator with live status (idle / engaged / active / awaiting approval / halted).
+- **See the swarm.** A roster shows all seven agents + the operator with live status (idle / engaged / active / awaiting approval / halted).
 - **Verify as it streams.** The chain-tail hash and a VERIFIED / TAMPERED badge are re-derived on every append by the same authority as the offline verifier; click any event to inspect its payload, `hash_prev`, and signature.
 
 Crucially, **the operator's own clicks are governed.** The viewer never writes to the ledger — a second writer would break the single-writer hash chain. Instead a click drops a decision file that the engagement (the sole ledger writer) picks up and records as a signed `approval` / `kill_switch` event. So *who approved what* is itself bound into the tamper-evident chain.
@@ -86,6 +86,8 @@ python -m viewer.viewer --engagement tamper-demo    # the viewer flips VERIFIED 
 ```
 
 Detection needs only the public key shipped in the bundle — never the private key. That is the whole trust thesis, made visible.
+
+**What this does and does not guarantee (the trust boundary).** The signing key is generated per engagement and written `0600` next to the ledger, so the guarantee is *external, post-hoc tamper-evidence*: anyone holding only the public key can prove that no event was added, removed, or reordered after the fact. It is **not** a defence against a compromised engagement host — whoever can write the ledger directory also holds that engagement's private key and could re-sign a rewritten chain. Hardening that (an HSM, a remote co-signing/notary service, or transparency-log anchoring so the tail hash is witnessed off-host) is the natural next step; the verifier and bundle format already take the public key as input, so none of the verification path changes. Likewise the operator approval recorded into the chain proves *that* an approval was made, not the human identity behind it — the Control Center authenticates by localhost reachability and records a fixed `operator` label, which is appropriate for the single-operator lab demo, not a multi-tenant deployment.
 
 ---
 
@@ -116,7 +118,7 @@ The "1000-agent" headline refers to the worker-job fan-out layer — demonstrate
 
 - `worker_fanout_bench --workers 1000 --cap 16` → **1000/1000 jobs** complete, **peak concurrency 16** (cap never exceeded), ~1,305 jobs/s.
 - `worker_fanout_bench --workers 200 --target http://localhost:3000` → **200/200 real scope-guarded probes** against the live target, peak 16.
-- `connect_harness` → **6/6 live Band WebSockets** held from one host.
+- `connect_harness` → **6/6 live Band WebSockets** held from one host (the prior six-agent roster; the harness reads the roster from `swarm/seed.py`, so it covers the seventh once registered).
 
 These worker jobs are coroutines, not 1000 live WebSocket agents — the worker layer scales toward 1000 concurrent **tasks** by distributing across machines, while full 1000-*agent* WS scale needs Band's enterprise tier, with no change to the architecture. [`scale_test/README.md`](scale_test/README.md) spells out exactly what each number proves and does not prove.
 
@@ -126,12 +128,13 @@ These worker jobs are coroutines, not 1000 live WebSocket agents — the worker 
 
 Day-3 build. **Verified end-to-end against live OWASP Juice Shop:**
 
-- Governance layer complete — audit ledger (Ed25519 hash-chain), scope guard, capability ACLs, sealed bundle + offline verify CLI, **enforced kill-switch**, and a **code-enforced human approval gate** (offensive tools refuse to exploit until the operator approves at the Control Center — enforced in code, not a prompt convention). **66/66 tests green** (incl. tamper-detection, path-boundary + `..`-traversal scope bypasses, the cap-never-exceeded scale invariant, fail-closed scoping, kill-switch refusal, and the approval-gate fail-closed / timeout paths).
-- All **six Band agents register and connect concurrently** (6/6), each wired with role prompts + custom tools (verified by `swarm/launcher.py --boot-check` and `scale_test/connect_harness.py`).
+- Governance layer complete — audit ledger (Ed25519 hash-chain), scope guard, capability ACLs, sealed bundle + offline verify CLI, **enforced kill-switch**, and a **code-enforced human approval gate** (offensive tools refuse to exploit until the operator approves at the Control Center — enforced in code, not a prompt convention). **72/72 tests green** (incl. tamper-detection, path-boundary + `..`-traversal scope bypasses, the cap-never-exceeded scale invariant, fail-closed scoping, kill-switch refusal, the approval-gate fail-closed / timeout paths, and the XSS Hunter's confirm / escaped / non-HTML / out-of-scope / halted / gate-refusal paths). CI runs `ruff` + the full suite on every push ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+- The brain + specialist roster **registers and connects concurrently** — verified **6/6** on the original six-agent roster (`swarm/launcher.py --boot-check`, `scale_test/connect_harness.py`), each wired with role prompts + custom tools. The newly-added **XSS Hunter** brings the live roster to **seven**: it is fully wired (`swarm/seed.py`, `agent_config.example.yaml`) and unit-tested, with its live boot-check pending its own Band registration — the only new step is registering the seventh agent at app.band.ai.
 - **Band message-delivery confirmed end-to-end:** a kickoff `@mention` posted by one agent was queued by Band and delivered to exactly the right agent (the Commander) on connect, which woke and attempted to reason — the *only* thing standing between here and a live run is `ANTHROPIC_API_KEY`.
 - The full **governed pipeline runs deterministically** ([`scripts/offline_demo.py`](scripts/offline_demo.py)) and confirms **three real vulnerability classes** on the live target: recon maps the surface → **security misconfiguration** (missing CSP/HSTS, A05) and **sensitive exposure** (open `/ftp`, version disclosure, A01/A05) flagged → ScopeWarden issues a `/rest/products`-scoped capability → the SQLi hunter reaching for `/ftp` is **blocked by the scope guard** (fail-closed, demonstrated in-script) → operator approval → SQLi **confirmed** (`q=apple'` → HTTP 500) → Auditor **seals a tamper-evident bundle** (7 events, 5 findings) that verifies offline.
-- **Scale layer measured** ([`scale_test/`](scale_test/)): 1000-job fan-out holds the concurrency cap (peak 16/16), 200 real scope-guarded probes against the live target, 6/6 live Band WebSockets held — every number stated with what it does and does not prove.
-- The Band **case-room seeder** ([`swarm/seed.py`](swarm/seed.py)) creates the room and adds all six agents in one command (verified live: 6/6 land, Commander as owner).
+- **A second offensive specialist makes recruit-on-discovery real** — the **XSS Hunter** ([`tools/xss_tools.py`](tools/xss_tools.py)) confirms reflected XSS by injecting a uniquely-marked `<svg/onload>` payload and asserting a finding **only** when it is reflected *unescaped* in an HTML response (escaped, or reflected into a non-HTML body, is reported as an honest not-confirmed — no fabricated findings). It is governed identically to the SQLi Hunter: refused when halted, blocked behind the code-enforced approval gate, and bounded by the scope guard (6 unit tests cover all paths). With two specialists, the Commander's "recruit the *matching* specialist" is a genuine decision, not a single fixed pipeline. Approval granularity is a deliberate choice — **per-endpoint, persisting for the engagement** (the operator authorizes exploiting an endpoint; the specialist may then work it without re-prompting on each payload), documented in [`swarm/engagement.py`](swarm/engagement.py).
+- **Scale layer measured** ([`scale_test/`](scale_test/)): 1000-job fan-out holds the concurrency cap (peak 16/16), 200 real scope-guarded probes against the live target, 6/6 live Band WebSockets held (the prior six-agent roster; the harness reads the roster from `swarm/seed.py`, so it scales to the seventh once registered) — every number stated with what it does and does not prove.
+- The Band **case-room seeder** ([`swarm/seed.py`](swarm/seed.py)) creates the room and adds the full roster in one command (verified live: 6/6 land on the prior six-agent roster, Commander as owner; the seeder now lists the seventh agent too, pending its registration).
 - **Kill-switch is real, not a prompt** — `Engagement.halt()` makes every offensive tool refuse in-process and audits the refusal; the Commander's `issue_kill_switch` tool engages it; [`swarm/kill_switch.py`](swarm/kill_switch.py) ejects the swarm from the room Band-side (verified live: removed 5 specialists, kept the Commander).
 - The **Reporter** emits a real deliverable ([report.md](agents/agent_tools.py)) — executive summary, severity rollup, findings table, and an audit attestation block (event count, chain tail, Ed25519 public key, offline verify command).
 

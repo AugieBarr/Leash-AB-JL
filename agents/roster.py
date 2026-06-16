@@ -1,4 +1,4 @@
-"""The Leash roster — role instructions + tool wiring for all six agents.
+"""The Leash roster — role instructions + tool wiring for all seven agents.
 
 ``build_swarm(eng)`` returns the agents wired to the shared Engagement. Each
 agent's ``custom_section`` is its role brief; Band's own platform-tool guidance
@@ -12,6 +12,7 @@ from agents.base_agent import build_agent
 from tools.misconfig_tools import misconfig_tools
 from tools.recon_tools import recon_tools
 from tools.sqli_tools import sqli_tools
+from tools.xss_tools import xss_tools
 
 TEAM = """\
 Your teammates in the Band room (mention them with @handle to hand off work):
@@ -20,6 +21,7 @@ Your teammates in the Band room (mention them with @handle to hand off work):
 - @leash-auditor     — Auditor: keeps the tamper-evident audit chain and seals the bundle.
 - @leash-recon-scout — Recon Scout: maps the attack surface (read-only probes).
 - @leash-sqli-hunter — SQLi Hunter: confirms/exploits SQL injection — only after human approval.
+- @leash-xss-hunter  — XSS Hunter: confirms reflected cross-site scripting — only after human approval.
 - @leash-reporter    — Reporter: writes the final report.
 The human operator is also in the room and sees every message.
 This is an AUTHORIZED engagement against a deliberately-vulnerable lab target only."""
@@ -31,8 +33,11 @@ When the operator starts an engagement:
 1. Acknowledge and confirm the authorized target.
 2. Ask @leash-scope-warden to issue the engagement scope, and @leash-auditor to open the audit chain.
 3. Recruit @leash-recon-scout into the room (use the add-participant tool) and ask it to map the target.
-4. When recon surfaces a vulnerability class (e.g. SQL injection), recruit the matching specialist
-   (e.g. @leash-sqli-hunter) and ask @leash-scope-warden to scope it to the relevant paths.
+4. When recon surfaces a vulnerability class, recruit the MATCHING specialist for it and ask
+   @leash-scope-warden to scope it to the relevant paths:
+   - a SQL-injection surface (the search parameter flows into a SQL query) -> @leash-sqli-hunter;
+   - a reflected-input / cross-site-scripting surface -> @leash-xss-hunter.
+   Recruit the specialist the discovery calls for — do not recruit one that doesn't fit the finding.
 5. ENFORCE THE GATE: a specialist must get explicit human approval before it exploits anything.
    Relay the operator's decision. If the operator says "halt" (or you see an out-of-scope or
    destructive risk), call the `issuekillswitch` tool IMMEDIATELY — that hard-stops every offensive tool
@@ -63,7 +68,9 @@ Use the `crawltarget` tool first to enumerate endpoints, then `httpprobe` to ins
 Use `securityheadersprobe` to flag missing security headers (OWASP A05) and `exposureprobe` to find
 open directories or version-disclosing endpoints (OWASP A01/A05) — all read-only, no exploitation. Report
 what you find to @leash-commander in a short message, and call out any vulnerability class you spot
-(especially SQL injection candidates) so the right specialist is recruited."""
+so the right specialist is recruited — name SQL injection candidates (a parameter that flows into a
+SQL query) AND reflected-input / cross-site-scripting candidates (a parameter echoed back into the
+response) distinctly, so the Commander recruits the matching specialist for each."""
 
 SQLI_HUNTER = f"""You are the SQLi Hunter — you confirm and exploit SQL injection on in-scope endpoints.
 {TEAM}
@@ -76,6 +83,19 @@ APPROVE; if they HALT or never approve, the tool refuses in code and the engagem
 bypass it. When a result comes back, report it (vulnerable or not, with evidence) to @leash-commander.
 You can only ever reach paths your capability allows — out-of-scope calls are blocked automatically."""
 
+XSS_HUNTER = f"""You are the XSS Hunter — you confirm reflected cross-site scripting on in-scope endpoints.
+{TEAM}
+
+CRITICAL — THE HUMAN APPROVAL GATE (enforced in code, not on trust):
+Before injecting, post a short message that @mentions the operator and states exactly what you intend
+to run and against which endpoint. Then call your `manualxssprobe` tool. The tool itself opens the
+approval gate in the operator's Control Center and BLOCKS until the operator clicks APPROVE; if they
+HALT or never approve, the tool refuses in code and the engagement stops — you cannot bypass it. The
+probe injects a uniquely-marked <svg/onload> payload and confirms XSS only when it is reflected
+UNESCAPED in an HTML response; report the result honestly (confirmed, or not — with the reason) to
+@leash-commander. You can only ever reach paths your capability allows — out-of-scope calls are
+blocked automatically."""
+
 REPORTER = f"""You are the Reporter — you write the final Leash pentest report.
 {TEAM}
 
@@ -84,12 +104,13 @@ cross-referenced to the sealed audit chain. Post a short summary to the room."""
 
 
 def build_swarm(eng):
-    """Build all six Band agents wired to the shared Engagement."""
+    """Build all seven Band agents wired to the shared Engagement."""
     return [
         build_agent("leash-commander", COMMANDER, commander_tools(eng)),
         build_agent("leash-scope-warden", SCOPE_WARDEN, scope_warden_tools(eng)),
         build_agent("leash-auditor", AUDITOR, auditor_tools(eng)),
         build_agent("leash-recon-scout", RECON_SCOUT, recon_tools(eng) + misconfig_tools(eng)),
         build_agent("leash-sqli-hunter", SQLI_HUNTER, sqli_tools(eng)),
+        build_agent("leash-xss-hunter", XSS_HUNTER, xss_tools(eng)),
         build_agent("leash-reporter", REPORTER, reporter_tools(eng)),
     ]

@@ -50,7 +50,7 @@ A public MIT repo + 3-min demo where a tiered agent swarm coordinates through a 
   TIER 1  BRAIN AGENTS (persistent WS, Sonnet)
           Commander (orchestrate/recruit)   ScopeWarden (capabilities)   Auditor (chain + seal)
   TIER 2  SPECIALISTS (recruited per-discovery, Sonnet)
-          Recon Scout   SQLi Hunter   [XSS Hunter]   [Auth Breaker]   Reporter
+          Recon Scout   SQLi Hunter   XSS Hunter   [Auth Breaker]   Reporter
   TIER 3  WORKER TOOL-JOBS (asyncio tasks, NOT Band agents, Haiku/deterministic)
           http_probe · crawl · sqlmap · ffuf · jwt_crack   (semaphore-bounded fan-out)
 ```
@@ -78,7 +78,7 @@ A public MIT repo + 3-min demo where a tiered agent swarm coordinates through a 
 | Recon Scout | `leash-recon-scout` | Sonnet | surface mapping | `http_probe`, `crawl_target`, `security_headers_probe`, `exposure_probe` · `js_enum` *(stretch)* |
 | SQLi Hunter | `leash-sqli-hunter` | Sonnet | SQL injection | `run_sqlmap`, `manual_sqli_probe` |
 | Reporter | `leash-reporter` | Sonnet | report synthesis | `render_findings_report`, `read_audit_bundle` |
-| XSS Hunter *(stretch)* | `leash-xss-hunter` | Sonnet | XSS | `run_dalfox`, `manual_xss_probe` |
+| XSS Hunter **(built)** | `leash-xss-hunter` | Sonnet | reflected XSS | `manual_xss_probe` (approval-gated + scope-guarded; unit-tested) · `run_dalfox` *(stretch)* |
 | Auth Breaker *(stretch)* | `leash-auth-breaker` | Sonnet | auth/JWT/IDOR | `jwt_crack`, `brute_login`, `idor_fuzz` |
 
 Worker tool-jobs are `asyncio.create_task` launched by specialists, semaphore-bounded, each gated by `scope_guard` before exec — **not** Band agents.
@@ -155,7 +155,7 @@ All MIT-clean (no Dilithium NIF / Logos dep). The chain formula above is exact �
 - **Jun 18.** README (diagram, GIF, install) + polish + full dry runs (auto-approve smoke, then human-in-loop) + scale screenshots done. *Augie: video recorded + slides final.* Buffer remaining.
 - **Jun 19 AM.** Final record + submission form + link check + final commit landed by ~10:00 ET (1h buffer before 11:00).
 
-**Stretch (only if ahead):** Elixir ScopeWarden hitting Band's REST Agent API (cross-runtime "three frameworks in one room" beat — reuses Josh's hardened Elixir directly); XSS Hunter + Auth Breaker; `viewer/` live SSE case-viewer; 30→50-agent scale.
+**Stretch (only if ahead):** Elixir ScopeWarden hitting Band's REST Agent API (cross-runtime "three frameworks in one room" beat — reuses Josh's hardened Elixir directly); Auth Breaker (XSS Hunter now built); `viewer/` live SSE case-viewer; 30→50-agent scale.
 
 ---
 

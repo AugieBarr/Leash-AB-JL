@@ -26,6 +26,15 @@ Flow:
 
 This module has no Band-SDK imports, so the whole mechanism is unit-testable
 offline — like everything under ``governance/``.
+
+Concurrency assumption: there is ONE ``decision.json`` per engagement, so the gate
+is designed for one open approval at a time — the Commander recruits and runs one
+specialist's exploitation step before the next, which the role briefs enforce. A
+``halt`` is global and resolves any waiting gate; an ``approve`` only satisfies the
+gate whose ``gate_id`` it names, so a stale approval can't carry over. True
+*simultaneous* gates from two specialists would need per-gate decision files
+(``decision-<gate_id>.json``); that is a deliberate non-goal for the single-operator
+demo, not an oversight.
 """
 from __future__ import annotations
 
