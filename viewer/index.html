@@ -472,6 +472,12 @@
     if (tool === "manual_auth_bypass_probe" && p.confirmed === true)
       out.push({ sev: "critical", type: "Broken Authentication", endpoint: p.path || "", seq: rec.seq,
         evidence: "SQL-injection login bypass returned a session token where the baseline was rejected (OWASP A07)" });
+    if (tool === "manual_prompt_injection_probe" && p.confirmed === true)
+      out.push({ sev: "high", type: "Prompt Injection", endpoint: p.path || "", seq: rec.seq,
+        evidence: "endpoint followed an injected directive and emitted the canary token (OWASP LLM01)" });
+    if (tool === "manual_data_exposure_probe" && p.confirmed === true)
+      out.push({ sev: "high", type: "Sensitive Data Exposure", endpoint: p.path || "", seq: rec.seq,
+        evidence: (Array.isArray(p.exposed_types) ? p.exposed_types.join(", ") : "sensitive data") + " exposed in response — type + count only, raw values redacted (OWASP A01/A04)" });
     if (tool === "security_headers_probe" && Array.isArray(p.missing)) {
       const crit = p.missing.filter((h) => CRIT_HEADERS.has(h));
       if (crit.length) out.push({ sev: "medium", type: "Security Misconfiguration", endpoint: p.url || "", seq: rec.seq,
