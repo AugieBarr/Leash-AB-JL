@@ -25,6 +25,15 @@ Leash is the **governed** swarm — the anti-HexStrike. The bold move is *where*
 
 All offensive activity targets **deliberately-vulnerable, authorized lab targets only** (OWASP Juice Shop). Scope enforcement is a hard, built-in gate — not an afterthought. Leash's contribution is the **restraint layer, not the offense**: the exploit primitives are intentionally minimal (a one-line SQLi probe, a marked XSS reflection, a differential login check), because the product is the governance that makes running them authorized, accountable, and reversible — the brakes for a category that is already shipping without them.
 
+## A platform, not a fixed toolkit
+
+Leash isn't five hard-coded exploits — it's a *pattern* for adding governed test agents. Every specialist is the same shape: a fail-closed scope check, then a code-enforced human approval gate, then a tamper-evident audit append, wrapped around one minimal probe. So adding a new offensive capability is **one tool factory + one role brief** ([`tools/`](tools/) + a prompt in [`agents/roster.py`](agents/roster.py)) — never a new way around the leash. The two AI-era specialists were added in exactly that way:
+
+- **Prompt-Injection Tester** ([`tools/injection_tools.py`](tools/injection_tools.py)) — sends a uniquely-marked directive at an LLM-backed endpoint and confirms injection *only* when the backend echoes the directive's secret canary token (OWASP LLM01). A hardened or non-LLM endpoint never emits it → an honest not-confirmed.
+- **Data Exposure Sentinel** ([`tools/exposure_tools.py`](tools/exposure_tools.py)) — scans a response for PII/PHI (emails, SSNs, card numbers, PHI keywords) and reports the **type and count** of each leak, **never the raw values** — a compliance test must not itself become a data-harvesting step (OWASP A01/A04; HIPAA/PCI programs).
+
+That extensibility *is* the product: a security team recruits the testers its own stack needs, and each one is governed by construction. On Band, "recruit" is literal — the Commander pulls the matching agent into the room the moment recon classifies the surface, so the roster is an **agent-discovery loop**, not a static pipeline.
+
 ## Who it's for
 
 A security-engineering lead whose SOC 2 or PCI-DSS program has to produce a penetration-test evidence package every quarter — proof of exactly what was tested, when, and who authorized each exploit step. Today that record is assembled by hand and trusted because the operator says so. Leash emits it as a byproduct: an Ed25519-signed, hash-chained bundle the customer or auditor can verify cold, with only the public key shipped inside it — **no trust in the operator required.** The governance core is a clean-room port of a production Elixir audit system (`DiogenesCore.AuditLog`), not hackathon scaffolding.
