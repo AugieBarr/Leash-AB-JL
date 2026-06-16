@@ -6,7 +6,7 @@ Point it at a target and a **Commander runs the engagement inside a Band room**:
 
 > Built for the **Band of Agents Hackathon** (lablab.ai, Jun 2026) by Team Roan — Josh Langsam ([@joshualangsam-a11y](https://github.com/joshualangsam-a11y)) & Augie Barreirinhas ([@AugieBarr](https://github.com/AugieBarr)).
 
-![The Leash Control Center — the operator-approved human gate, the live six-agent roster, a severity-ranked findings feed, and the Governance Holds panel showing the scope guard refusing an off-target reach, all over a tamper-evident Ed25519 chain re-verified the instant each event lands.](docs/img/control-center.png)
+![The Leash Control Center — the operator-approved human gate, the live eight-agent roster, a severity-ranked findings feed, and the Governance Holds panel showing the scope guard refusing an off-target reach, all over a tamper-evident Ed25519 chain re-verified the instant each event lands.](docs/img/control-center.png)
 
 ---
 
