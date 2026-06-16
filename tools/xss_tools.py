@@ -109,8 +109,9 @@ def xss_tools(eng, *, gate_timeout: float = 600.0, gate_poll: float = 0.4):
             )
             return (
                 f"[VULNERABLE] {base} reflects the {args.param} parameter unescaped into an HTML "
-                f"response (content-type {content_type or 'text/html'}) — reflected XSS confirmed; "
-                f"the injected <svg/onload> executes."
+                f"response (content-type {content_type or 'text/html'}) — the injected <svg/onload> "
+                f"payload is present unescaped, so the endpoint is reflected-XSS injectable. Confirm "
+                f"execution in a browser; a CSP or WAF could still block it."
             )
         if reflected_raw and not is_html:
             return (
