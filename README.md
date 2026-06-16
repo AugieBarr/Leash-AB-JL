@@ -52,7 +52,7 @@ A security-engineering lead whose SOC 2 or PCI-DSS program has to produce a pene
   TIER 3  WORKER TOOL-JOBS    http_probe · crawl · sqlmap · ffuf  (semaphore-bounded fan-out)
 ```
 
-Band's `@mention` routing means a 30-agent room never floods every agent — each wakes only when called — so the tiered swarm *fits* Band rather than fighting it. Three offensive specialists make recruitment a *real* matching decision: a SQL-injection surface recruits `@leash-sqli-hunter`, a reflected-input surface `@leash-xss-hunter`, and a login surface `@leash-auth-breaker`. Handoffs are LLM-driven (the Commander chooses who to `@mention`); the scope leash, approval gate, and audit chain are enforced in code — so coordination stays flexible while governance stays non-optional.
+Band's `@mention` routing means a 30-agent room never floods every agent — each wakes only when called — so the tiered swarm *fits* Band rather than fighting it. Five offensive specialists make recruitment a *real* matching decision: a SQL-injection surface recruits `@leash-sqli-hunter`, a reflected-input surface `@leash-xss-hunter`, a login surface `@leash-auth-breaker`, an LLM-backed surface `@leash-injection-tester`, and a PII/PHI-leaking surface `@leash-data-sentinel`. Handoffs are LLM-driven (the Commander chooses who to `@mention`); the scope leash, approval gate, and audit chain are enforced in code — so coordination stays flexible while governance stays non-optional.
 
 ---
 
