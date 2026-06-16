@@ -50,7 +50,9 @@ When the operator starts an engagement:
    ask @leash-scope-warden to scope it to the relevant paths, then @mention the specialist to proceed:
    - a SQL-injection surface (the search parameter flows into a SQL query) -> leash-sqli-hunter;
    - a reflected-input / cross-site-scripting surface -> leash-xss-hunter;
-   - a login / authentication surface (a login endpoint that may be bypassable) -> leash-auth-breaker.
+   - a login / authentication surface (a login endpoint that may be bypassable) -> leash-auth-breaker;
+   - an LLM-backed surface (a chatbot or AI endpoint that may follow injected instructions) -> leash-injection-tester;
+   - a surface that may leak sensitive data (an endpoint returning PII/PHI it should not) -> leash-data-sentinel.
    Recruit the specialist the discovery calls for — do not recruit one that doesn't fit the finding.
 5. ENFORCE THE GATE: a specialist must get explicit human approval before it exploits anything.
    Relay the operator's decision. If the operator says "halt" (or you see an out-of-scope or
