@@ -134,7 +134,11 @@ async def enforce_gate(
         if not eng.halted:
             await eng.halt(f"operator halted at approval gate for {tool}")
         return False
-    await eng.record_approval(endpoint, gate_id=gate, operator="operator", tool=tool)
+    # Record under the operator the decision actually carried, so an unattended
+    # approval (scripts/auto_approve.py) is never logged as a human one — the chain
+    # stays honest about who approved.
+    rec = read_decision(eng.engagement_id, eng.ledger.dir.parent) or {}
+    await eng.record_approval(endpoint, gate_id=gate, operator=rec.get("operator") or "operator", tool=tool)
     return True
 
 
