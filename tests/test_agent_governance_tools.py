@@ -32,6 +32,18 @@ async def test_check_capability_permitted_and_denied(tmp_path):
     assert "DENIED" in denied
 
 
+async def test_recruit_refuses_unknown_label(tmp_path):
+    """The Commander can only recruit the known specialist roster — a code guard, so
+    even a prompt-injected agent_label is refused before any config lookup or Band
+    call, and the refusal is audited."""
+    eng = open_engagement("t-recruit", "localhost", 3000, root=str(tmp_path))
+    eng.band_room_id = "room-xyz"  # bound, so the refusal is the allowlist (not the no-room guard)
+    model, handler = _pair(commander_tools, eng, "RecruitSpecialistInput")
+    out = await handler(model(agent_label="leash-evil-agent"))
+    assert "RECRUIT REFUSED" in out
+    assert "recruit_specialist" in (eng.ledger.dir / "audit.ndjson").read_text()
+
+
 async def test_auditor_append_verify_and_seal(tmp_path):
     eng = open_engagement("t-aud", "localhost", 3000, root=str(tmp_path))
     await eng.log("engagement_open", target="localhost:3000")
