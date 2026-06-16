@@ -89,10 +89,24 @@ class VerifyResult:
         return self.ok
 
 
+class LedgerTamperError(ValueError):
+    """Raised when a ledger being *resumed for append* fails chain verification, so
+    a tampered ledger can never be silently extended with valid new events. Engaged
+    only on the append path (``open_engagement`` passes ``verify_on_resume=True``);
+    read-only consumers (the viewer, the verify CLI, ``tamper_demo``) open without
+    the guard, so they can still load and render a tampered chain as TAMPERED."""
+
+
 class AuditLedger:
     """Async-safe, file-backed, hash-chained audit ledger for one engagement."""
 
-    def __init__(self, engagement_id: str, root: str | os.PathLike = "engagements") -> None:
+    def __init__(
+        self,
+        engagement_id: str,
+        root: str | os.PathLike = "engagements",
+        *,
+        verify_on_resume: bool = False,
+    ) -> None:
         self.engagement_id = engagement_id
         self.dir = Path(root) / engagement_id
         self.dir.mkdir(parents=True, exist_ok=True)
@@ -102,6 +116,17 @@ class AuditLedger:
         self._sk = self._load_or_generate_key()
         self._pk = self._sk.public_key()
         self._seq, self._prev = self._replay_tail()
+        if verify_on_resume and self._seq > 0:
+            # Resuming a NON-EMPTY ledger to append. _replay_tail advanced the tail
+            # without checking signatures, so verify the whole chain before trusting
+            # it: otherwise a ledger tampered between runs would be silently adopted
+            # and new valid events laundered onto corrupt history. Refuse on failure
+            # — tamper-evidence must not depend on someone remembering to verify.
+            result = self.verify_chain()
+            if not result.ok:
+                raise LedgerTamperError(
+                    f"refusing to resume tampered ledger {self.path}: {result.detail}"
+                )
 
     # ----- keys ----------------------------------------------------------
     def _load_or_generate_key(self) -> Ed25519PrivateKey:
