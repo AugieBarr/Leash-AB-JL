@@ -87,7 +87,9 @@ def recon_tools(eng):
             f"Discovered endpoints:\n{lines}\n"
             "Candidate vulnerability classes for the Commander to route to specialists:\n"
             "- /rest/products/search?q= flows the q parameter into a SQL query — a SQL injection "
-            "candidate (recruit the SQLi Hunter) and a reflected-input / XSS candidate (recruit the XSS Hunter);\n"
+            "candidate (recruit the SQLi Hunter);\n"
+            "- /rest/products/search?q= also echoes the q parameter into the HTML response — a "
+            "reflected-input / XSS candidate (recruit the XSS Hunter);\n"
             "- /rest/user/login is an authentication endpoint that may be bypassable — an auth candidate "
             "(recruit the Auth Breaker)."
         )
