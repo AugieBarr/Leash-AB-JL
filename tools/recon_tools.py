@@ -92,7 +92,11 @@ def recon_tools(eng):
             "- /rest/products/search?q= also echoes the q parameter into the HTML response — a "
             "reflected-input / XSS candidate (recruit the XSS Hunter);\n"
             "- /rest/user/login is an authentication endpoint that may be bypassable — an auth candidate "
-            "(recruit the Auth Breaker)."
+            "(recruit the Auth Breaker);\n"
+            "- /rest/chatbot/* is an LLM-backed support endpoint that may follow injected instructions — a "
+            "prompt-injection candidate (recruit the Prompt-Injection Tester);\n"
+            "- /api/Users / /rest/user/* return account data and may over-expose PII/PHI — a "
+            "sensitive-data-exposure candidate (recruit the Data Exposure Sentinel)."
         )
 
     return [(HttpProbeInput, httpprobe), (CrawlTargetInput, crawltarget)]
