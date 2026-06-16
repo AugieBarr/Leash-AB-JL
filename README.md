@@ -23,7 +23,7 @@ Leash is the **governed** swarm — the anti-HexStrike. The bold move is *where*
 | "Dropping your tables" | A **human approval gate** before any destructive action, and a Commander kill-switch that ejects the swarm |
 | Static recon→scan→exploit pipelines | **Dynamic recruit-on-discovery** — recon classifies the surface and the Commander recruits the *matching* specialist live: a SQLi surface pulls in the SQLi Hunter, a reflected-input surface the XSS Hunter, a login surface the Auth Breaker |
 
-All offensive activity targets **deliberately-vulnerable, authorized lab targets only** (OWASP Juice Shop). Scope enforcement is a hard, built-in gate — not an afterthought.
+All offensive activity targets **deliberately-vulnerable, authorized lab targets only** (OWASP Juice Shop). Scope enforcement is a hard, built-in gate — not an afterthought. Leash's contribution is the **restraint layer, not the offense**: the exploit primitives are intentionally minimal (a one-line SQLi probe, a marked XSS reflection, a differential login check), because the product is the governance that makes running them authorized, accountable, and reversible — the brakes for a category that is already shipping without them.
 
 ## Who it's for
 
