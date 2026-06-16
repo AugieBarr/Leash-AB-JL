@@ -55,7 +55,7 @@ def _room_id(room) -> str:
 
 # The persistent "brain" tier seeded at room creation. With ``brain_only=True``
 # the remaining specialists (recon scout, SQLi hunter, XSS Hunter, Auth Breaker,
-# reporter) are NOT seeded —
+# Prompt-Injection Tester, Data Exposure Sentinel, reporter) are NOT seeded —
 # the Commander recruits them on discovery, making the tiered recruit-on-discovery
 # story a real code path rather than a no-op against a pre-filled room.
 BRAIN = {"leash-commander", "leash-scope-warden", "leash-auditor"}
