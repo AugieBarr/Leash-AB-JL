@@ -5,7 +5,7 @@ eight agents wired to it, and runs them in one event loop. They wait for the
 operator to mention @leash-commander in a Band room to begin.
 
     python -m swarm.launcher --engagement-id demo-01
-    python -m swarm.launcher --boot-check          # connect all 6, then exit
+    python -m swarm.launcher --boot-check          # connect all 8, then exit
 """
 from __future__ import annotations
 
