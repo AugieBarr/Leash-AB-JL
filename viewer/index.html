@@ -444,12 +444,16 @@
       if (tool === "manual_sqli_probe" || tool === "run_sqlmap") return "leash-sqli-hunter";
       if (tool === "manual_xss_probe") return "leash-xss-hunter";
       if (tool === "manual_auth_bypass_probe") return "leash-auth-breaker";
+      if (tool === "manual_prompt_injection_probe") return "leash-injection-tester";
+      if (tool === "manual_data_exposure_probe") return "leash-data-sentinel";
       return "leash-recon-scout";
     }
     if (rec.kind === "error") {
       if (tool.includes("sqli") || tool.includes("sqlmap")) return "leash-sqli-hunter";
       if (tool.includes("xss")) return "leash-xss-hunter";
       if (tool.includes("auth")) return "leash-auth-breaker";
+      if (tool.includes("injection")) return "leash-injection-tester";
+      if (tool.includes("data_exposure")) return "leash-data-sentinel";
       return "leash-recon-scout";
     }
     return null;
