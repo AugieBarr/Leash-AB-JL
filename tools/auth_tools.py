@@ -13,9 +13,9 @@ baseline is rejected. If both are rejected (login hardened) or both yield a toke
 (the endpoint authenticates loosely for reasons not attributable to the
 injection), it reports an honest not-confirmed — no fabricated finding.
 
-Governed exactly like the SQLi/XSS tools: refused when halted, blocked behind the
-code-enforced human approval gate, and authorized by the scope guard before any
-request leaves.
+Governed exactly like the SQLi/XSS tools: refused when halted, bounded by the
+scope guard before the gate is ever opened, and blocked behind the code-enforced
+human approval gate before any request leaves.
 """
 from __future__ import annotations
 
