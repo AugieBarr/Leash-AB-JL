@@ -404,12 +404,16 @@
     { id: "leash-sqli-hunter", name: "SQLi Hunter", role: "exploitation" },
     { id: "leash-xss-hunter",  name: "XSS Hunter",  role: "exploitation" },
     { id: "leash-auth-breaker", name: "Auth Breaker", role: "exploitation" },
+    { id: "leash-injection-tester", name: "Prompt-Injection Tester", role: "LLM red-team" },
+    { id: "leash-data-sentinel", name: "Data Exposure Sentinel", role: "data exposure" },
     { id: "leash-reporter",    name: "Reporter",    role: "reporting" },
   ];
 
   // Map an offensive tool to the specialist that runs it (gate/result attribution).
   const HUNTER_FOR_TOOL = (tool) => {
     const t = tool || "";
+    if (t.includes("injection")) return "leash-injection-tester";
+    if (t.includes("data_exposure")) return "leash-data-sentinel";
     if (t.includes("xss")) return "leash-xss-hunter";
     if (t.includes("auth")) return "leash-auth-breaker";
     return "leash-sqli-hunter";
