@@ -834,11 +834,20 @@
     if (rec.kind === "engagement_open") { const p = parse(rec); if (p.target) $("eng-target").textContent = p.target; }
     const agent = agentFor(rec);
     if (agent) { agentCount.set(agent, (agentCount.get(agent) || 0) + 1); lastAgent = agent; }
+    // Drive the specialist registry off the same chain: recon's classified candidates
+    // flag a specialist as recommended; a `recruited` event marks it pulled into the room.
+    if (rec.kind === "recruited") { const p = parse(rec); if (p.agent) recruited.add(p.agent); }
+    if (rec.kind === "tool_result") {
+      const p = parse(rec);
+      if (p.tool === "crawl_target" && Array.isArray(p.candidates))
+        for (const c of p.candidates) { const a = CAND_TO_AGENT[c]; if (a) recommended.add(a); }
+    }
     renderAuditRow(rec);
     ingestVulns(rec);
     ingestDefenses(rec);
     updateGate(rec);
     renderRoster();
+    renderRegistry();
     renderHaltBanner();
     updateCCState();
     applyFilters();
