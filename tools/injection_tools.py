@@ -73,6 +73,8 @@ def injection_tools(eng, *, gate_timeout: float = 600.0, gate_poll: float = 0.4)
         base = ensure_leading_slash(args.path)
         # Scope is checked BEFORE the gate (mirrors sqli_tools): an out-of-scope
         # reach fails closed by construction without ever bothering the operator.
+        # Both requests hit the same base path, so one scope check covers both.
+        baseline_url = eng.base_url + base + quote(_BASELINE)
         probe_url = eng.base_url + base + quote(_PAYLOAD)
         try:
             scope_guard(probe_url, cap())
@@ -86,17 +88,25 @@ def injection_tools(eng, *, gate_timeout: float = 600.0, gate_poll: float = 0.4)
             return _GATE_DENIED
 
         async with httpx.AsyncClient(timeout=10.0) as client:
+            baseline = await client.get(baseline_url)
             resp = await client.get(probe_url)
 
         body = resp.text or ""
-        confirmed = _CANARY in body
+        reflects_input = _BASELINE in (baseline.text or "")  # a dumb reflector, not an LLM
+        ok_status = resp.status_code < 400
+        # Confirm ONLY when the canary came back, on a success response, from an
+        # endpoint that did NOT merely reflect the benign baseline. Each clause kills
+        # a false positive: no canary → nothing happened; an error body that echoes
+        # the prompt → not a real answer; a reflector → echo, not instruction-following.
+        confirmed = (_CANARY in body) and ok_status and not reflects_input
 
         await eng.log(
             "tool_result",
             tool="manual_prompt_injection_probe",
             path=base,
             status=resp.status_code,
-            canary_emitted=confirmed,
+            canary_emitted=_CANARY in body,
+            reflects_input=reflects_input,
             confirmed=confirmed,
         )
         if confirmed:
@@ -104,12 +114,19 @@ def injection_tools(eng, *, gate_timeout: float = 600.0, gate_poll: float = 0.4)
                 type="prompt_injection",
                 endpoint=base,
                 severity="high",
-                evidence=f"endpoint followed an injected directive and emitted the canary token {_CANARY}",
+                # The canary is a synthetic, tool-generated token — not data extracted
+                # from the target — so naming it here exposes nothing sensitive.
+                evidence="endpoint followed an injected directive and echoed the synthetic canary token (tool-generated); OWASP LLM01",
             )
             return (
                 f"[VULNERABLE] {base} is prompt-injectable on the {args.param} parameter — the endpoint "
-                f"followed the injected instruction and emitted the canary token. The backend treats "
-                f"user input as instructions; OWASP LLM01 (Prompt Injection)."
+                f"followed the injected instruction and emitted the canary token (and did not merely "
+                f"reflect the baseline). The backend treats user input as instructions; OWASP LLM01 (Prompt Injection)."
+            )
+        if reflects_input:
+            return (
+                f"[not confirmed] {base}: the endpoint reflected the benign baseline marker, so it echoes "
+                f"input rather than following instructions — a reflector, not an injectable LLM. No finding."
             )
         return (
             f"[not confirmed] {base}: the canary token was not emitted (HTTP {resp.status_code}) — the "
