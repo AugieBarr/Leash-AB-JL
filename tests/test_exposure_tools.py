@@ -81,6 +81,28 @@ async def test_clean_response_not_confirmed(tmp_path, monkeypatch):
     assert eng.findings == []
 
 
+async def test_error_body_not_confirmed(tmp_path, monkeypatch):
+    """PII-shaped strings in a non-success response (a 500 error page / stack trace)
+    are an error, not a leak — they must not produce a finding, and the raw values
+    still never reach the audit chain."""
+    eng = open_engagement("t-exp-500", "localhost", 3000, root=str(tmp_path))
+    _scope(eng, ["/rest/admin"])
+    await eng.record_approval("/rest/admin/err", operator="op", tool="manual_data_exposure_probe")
+    secret = "patient jane.doe@example.com SSN 123-45-6789"
+
+    class _C(_FakeClient):
+        async def get(self, url):
+            return _FakeResp(500, secret)
+
+    monkeypatch.setattr(httpx, "AsyncClient", _C)
+    model, handler = _pair(eng, "ManualDataExposureProbeInput", gate_timeout=0.1)
+    out = await handler(model(path="/rest/admin/err"))
+    assert "not confirmed" in out
+    assert eng.findings == []
+    chain = (eng.ledger.dir / "audit.ndjson").read_text()
+    assert "jane.doe@example.com" not in chain and "123-45-6789" not in chain
+
+
 async def test_blocked_out_of_scope(tmp_path):
     eng = open_engagement("t-exp-scope", "localhost", 3000, root=str(tmp_path))
     _scope(eng, ["/rest/products"])
