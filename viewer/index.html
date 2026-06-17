@@ -1003,6 +1003,63 @@
     if (current) connect(current);
     else { stream.innerHTML = '<div class="empty">no engagements found under engagements/</div>'; $("eng-name").textContent = "no engagement"; }
   }
+  // ----- Design a Specialist (Section 02.6): live, client-side preview only -----
+  // No server call, no file write — the only side effect is a clipboard copy. The
+  // scaffolder (python -m tools.scaffolder) is the engine; this previews its output.
+  (function () {
+    function slug(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, ""); }
+    function owaspFor(v) {
+      v = v.toLowerCase();
+      if (v.includes("sql")) return "OWASP A03";
+      if (v.includes("xss")) return "OWASP A03";
+      if (v.includes("jwt") || v.includes("auth")) return "OWASP A07";
+      if (v.includes("ssrf")) return "OWASP A10";
+      if (v.includes("graphql") || v.includes("idor") || v.includes("api")) return "OWASP API8";
+      if (v.includes("prompt") || v.includes("inject")) return "OWASP LLM01";
+      if (v.includes("pii") || v.includes("phi") || v.includes("expos")) return "OWASP A01/A04";
+      return "OWASP A01";
+    }
+    const pv = $("cp-vuln"), ps = $("cp-scope"), pd = $("cp-depth"), ph = $("cp-handle"), box = $("cp-preview");
+    if (!pv || !box) return;
+    function render() {
+      const vuln = pv.value.trim(), scope = ps.value.trim(), depth = pd.value, handleIn = ph.value.trim();
+      if (!vuln && !scope) {
+        box.innerHTML = '<div class="cp-empty">Fill in a vulnerability class and scope hint to preview the governed specialist.</div>';
+        return;
+      }
+      const name = slug(vuln) || "specialist";
+      const handle = handleIn || ("leash-" + name.replace(/_/g, "-"));
+      const ready = !!(vuln && scope), owasp = owaspFor(vuln);
+      const gate = depth === "passive" ? "" : '<span class="lb">gate</span>';
+      const multi = depth === "full-chain" ? '<span class="lb">multi-step</span>' : "";
+      const cmd =
+        "python -m tools.scaffolder \\\n" +
+        "  --name " + name + " \\\n" +
+        '  --owasp-class "' + owasp + '" \\\n' +
+        '  --target-path "/<path>?q=" \\\n' +
+        '  --payload "<probe>" \\\n' +
+        "  --marker LEASH_" + name.toUpperCase() + "_7731 \\\n" +
+        "  --severity high \\\n" +
+        '  --description "Confirm ' + (vuln || "<vuln>") + " on " + (scope || "<scope>") + '."';
+      box.innerHTML =
+        '<div class="spec' + (ready ? "" : " byo") + '" style="margin:0;">' +
+          '<div class="spec-head"><div><div class="sname">' + esc(vuln || "(unnamed)") + "</div>" +
+          '<div class="shandle">@' + esc(handle) + "</div></div>" +
+          '<span class="sstat">' + (ready ? "ready" : "draft") + "</span></div>" +
+          '<div class="sclass">' + (scope ? "confirms on <b>" + esc(scope) + "</b>" : '<span style="color:var(--text-muted)">scope pending</span>') + "</div>" +
+          '<div class="sleash"><span class="owb">' + esc(owasp) + '</span><span class="lb">scope</span>' + gate + multi + '<span class="lb">audit</span></div>' +
+        "</div>" +
+        '<div><div class="cp-cmd-label">Scaffold command — leash-by-construction</div>' +
+        '<div class="tut-cmd">' + esc(cmd) + "</div>" +
+        (ready ? '<button class="btn btn-approve cp-copy" id="cp-copy">Copy scaffold command</button>' : "") +
+        "</div>";
+      const b = $("cp-copy");
+      if (b) b.addEventListener("click", () => copy(cmd, b));
+    }
+    ["cp-vuln", "cp-scope", "cp-handle"].forEach((id) => { const e = $(id); if (e) e.addEventListener("input", render); });
+    pd.addEventListener("change", render);
+  })();
+
   init();
 </script>
 </body>
