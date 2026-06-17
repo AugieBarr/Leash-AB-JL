@@ -29,17 +29,23 @@ def parse_target(url: str) -> Target:
         port = parts.port
     else:
         port = 443 if parts.scheme == "https" else 80
-    # Percent-DECODE, then normalize away '..' and duplicate slashes BEFORE the
-    # prefix check. The target server URL-decodes the path and resolves '..'
-    # itself, so a narrowed /rest/products cap must not be escapable by *encoding*
-    # the traversal:
-    #     /rest/products/%2e%2e/admin   (%2e%2e -> '..')
-    #     /rest/products%2f..%2fadmin   (%2f    -> '/')
-    # both resolve to /rest/admin and must fail closed. We decode once — matching
-    # a server that URL-decodes the path a single time (double-encoding like
-    # %252e stays literal here, exactly as such a server would see it).
-    decoded = unquote((parts.path or "/").replace("*", ""))
-    path = posixpath.normpath(decoded)
+    # Percent-DECODE to a fixed point, then normalize away '..' and duplicate
+    # slashes BEFORE the prefix check. The target server URL-decodes the path and
+    # resolves '..' itself, so a narrowed /rest/products cap must not be escapable
+    # by *encoding* the traversal — at any decode depth:
+    #     /rest/products/%2e%2e/admin      (%2e%2e   -> '..')
+    #     /rest/products%2f..%2fadmin       (%2f      -> '/')
+    #     /rest/products/%252e%252e/admin   (%252e%252e -> %2e%2e -> '..')
+    # all resolve to /rest/admin and must fail closed. Decoding repeatedly (bounded)
+    # makes the guard independent of how many times the target decodes — erring
+    # toward over-decoding is the fail-closed choice for a security boundary.
+    raw = (parts.path or "/").replace("*", "")
+    for _ in range(8):  # converges in 1-2 for any realistic input; bounded for safety
+        decoded = unquote(raw)
+        if decoded == raw:
+            break
+        raw = decoded
+    path = posixpath.normpath(raw)
     if not path.startswith("/"):
         path = "/"
     return Target(host=host, port=port, path=path)

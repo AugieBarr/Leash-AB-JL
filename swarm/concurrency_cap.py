@@ -22,7 +22,12 @@ class ConcurrencyCap:
         """Acquire a slot, run the coroutine produced by ``factory``, and free the
         slot when it finishes regardless of outcome."""
         await self._sem.acquire()
-        task = asyncio.ensure_future(factory())
+        try:
+            coro = factory()  # may raise *synchronously* before producing a coroutine
+        except BaseException:
+            self._sem.release()  # …in which case free the slot we just took
+            raise
+        task = asyncio.ensure_future(coro)
         task.add_done_callback(lambda _t: self._sem.release())
         return await task
 

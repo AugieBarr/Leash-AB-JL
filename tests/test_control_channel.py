@@ -88,6 +88,24 @@ async def test_stale_approval_cleared_on_new_gate(tmp_path):
     assert await await_decision(eng, g1, poll=0.02, timeout=0.15) == "halt"
 
 
+def test_halt_latches_and_rejects_later_approve(tmp_path):
+    # The kill-switch is a safety control: once halt is recorded it must latch on
+    # disk so a later approve cannot silently override it.
+    submit_decision("t-latch", action="halt", root=str(tmp_path))
+    with pytest.raises(ValueError):
+        submit_decision("t-latch", action="approve", gate_id="gate-0", root=str(tmp_path))
+
+
+async def test_await_decision_resolves_halt_from_flag_even_without_in_process_flag(tmp_path):
+    # A fresh reader that never saw eng.halted must still resolve to halt because
+    # the disk latch is present.
+    eng = open_engagement("t-latch2", "localhost", 3000, root=str(tmp_path))
+    gate = await request_approval(eng, tool="manual_sqli_probe")
+    submit_decision("t-latch2", action="halt", root=str(tmp_path))
+    assert not eng.halted  # the engagement object itself hasn't been halted here
+    assert await await_decision(eng, gate, poll=0.02, timeout=2.0) == "halt"
+
+
 async def test_watch_halt_engages_kill_switch(tmp_path):
     eng = open_engagement("t-ctl-watch", "localhost", 3000, root=str(tmp_path))
     submit_decision("t-ctl-watch", action="halt", root=str(tmp_path))

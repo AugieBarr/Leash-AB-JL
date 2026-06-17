@@ -14,6 +14,7 @@ exactly as a room-typed approval would, with none of the multi-writer risk.
 
 On-disk, under ``engagements/<id>/control/``:
     decision.json   — written by the viewer (operator action), read by the engagement
+    halt.flag       — sticky kill-switch latch; once written, approve is rejected
 
 Flow:
     1. A specialist needs approval → ``request_approval`` logs ``approval_requested``.
@@ -68,6 +69,14 @@ def decision_path(engagement_id: str, root: str | os.PathLike = "engagements") -
     return control_dir(engagement_id, root) / "decision.json"
 
 
+def halt_flag_path(engagement_id: str, root: str | os.PathLike = "engagements") -> Path:
+    """A sticky, never-cleared marker that a halt was issued. The kill-switch is a
+    safety control, so once engaged it must latch: a later ``approve`` cannot
+    overwrite it, and a fresh reader (one that never saw the in-process
+    ``eng.halted`` flag) still resolves to halt."""
+    return control_dir(engagement_id, root) / "halt.flag"
+
+
 # ----- engagement side (the sole ledger writer) -------------------------------
 async def request_approval(eng, *, tool: str, endpoint: str = "", detail: str = "") -> str:
     """Open a human-approval gate. Logs an ``approval_requested`` event the viewer
@@ -100,9 +109,10 @@ async def await_decision(
     names, so an approval meant for an earlier gate cannot carry over.
     """
     path = decision_path(eng.engagement_id, eng.ledger.dir.parent)
+    flag = halt_flag_path(eng.engagement_id, eng.ledger.dir.parent)
     deadline = time.monotonic() + timeout
     while True:
-        if eng.halted:
+        if eng.halted or flag.exists():
             return "halt"
         rec = _read(path)
         if rec is not None:
@@ -143,9 +153,10 @@ async def watch_halt(eng, *, poll: float = 0.5) -> str:
     kill-switch the moment a ``halt`` lands, so the Control Center's KILL button
     stops even agents that are mid-task. Returns once the engagement is halted."""
     path = decision_path(eng.engagement_id, eng.ledger.dir.parent)
+    flag = halt_flag_path(eng.engagement_id, eng.ledger.dir.parent)
     while not eng.halted:
         rec = _read(path)
-        if rec is not None and rec.get("action") == "halt":
+        if flag.exists() or (rec is not None and rec.get("action") == "halt"):
             await eng.halt("operator kill-switch (control center)")
             return "halt"
         await asyncio.sleep(poll)
@@ -171,6 +182,11 @@ def submit_decision(
         raise ValueError(f"unknown action {action!r}; expected one of {_ACTIONS}")
     cdir = control_dir(engagement_id, root)
     cdir.mkdir(parents=True, exist_ok=True)
+    flag = cdir / "halt.flag"
+    # The kill-switch latches: once a halt is on record, an approve cannot override
+    # it on disk. Mirrors the in-process eng.halted flag, which is also sticky.
+    if action == "approve" and flag.exists():
+        raise ValueError("engagement halted by kill-switch — approval rejected")
     record = {
         "action": action,
         "gate_id": gate_id,
@@ -181,6 +197,8 @@ def submit_decision(
     tmp = path.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(record), encoding="utf-8")
     os.replace(tmp, path)  # atomic on POSIX — poller sees all-or-nothing
+    if action == "halt":
+        flag.write_text(json.dumps(record), encoding="utf-8")  # sticky; never cleared
     return record
 
 

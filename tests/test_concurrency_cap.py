@@ -33,3 +33,20 @@ async def test_slot_freed_on_exception():
     results = await cap.map([boom, ok])
     assert isinstance(results[0], RuntimeError)
     assert results[1] == "ok"
+
+
+async def test_slot_freed_when_factory_raises_synchronously():
+    cap = ConcurrencyCap(1)
+
+    def sync_boom():  # raises on CALL, before any coroutine exists
+        raise RuntimeError("sync")
+
+    async def ok():
+        return "ok"
+
+    # Without releasing the slot on a synchronous raise, the second job could
+    # never acquire and this would hang — wait_for turns a regression into a
+    # fast failure instead of a stuck suite.
+    results = await asyncio.wait_for(cap.map([sync_boom, ok]), timeout=2.0)
+    assert isinstance(results[0], RuntimeError)
+    assert results[1] == "ok"

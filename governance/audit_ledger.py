@@ -136,7 +136,9 @@ class AuditLedger:
     async def append(self, kind: str, payload: str) -> int:
         """Append one signed event and return its sequence number. Atomic under
         an asyncio lock so concurrent callers cannot interleave the chain (the
-        race the Elixir ``append_head`` fix addresses)."""
+        race the Elixir ``append_head`` fix addresses). The blocking file write is
+        offloaded via ``asyncio.to_thread`` so a busy room's SSE loop is not
+        stalled by disk I/O while the chain advances."""
         async with self._lock:
             seq, prev = self._seq, self._prev
             sig = self._sk.sign(_signing_bytes(seq, kind, prev, payload))
@@ -147,11 +149,14 @@ class AuditLedger:
                 "hash_prev": base64.b64encode(prev).decode("ascii"),
                 "sig": base64.b64encode(sig).decode("ascii"),
             }
-            with self.path.open("a", encoding="utf-8") as f:
-                f.write(json.dumps(record) + "\n")
+            await asyncio.to_thread(self._append_line, json.dumps(record) + "\n")
             self._prev = _chain_hash(seq, kind, prev, payload, sig)
             self._seq = seq + 1
             return seq
+
+    def _append_line(self, line: str) -> None:
+        with self.path.open("a", encoding="utf-8") as f:
+            f.write(line)
 
     @property
     def head(self) -> LedgerHead:

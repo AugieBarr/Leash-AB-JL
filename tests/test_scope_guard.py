@@ -97,3 +97,15 @@ def test_parse_target_percent_decodes_path():
     assert parse_target("http://localhost:3000/rest/products%2f..%2fadmin").path == "/rest/admin"
     # Mixed-case encoding decodes too.
     assert parse_target("http://localhost:3000/rest/%2E%2E/admin").path == "/admin"
+
+
+def test_double_encoded_traversal_decoded_to_fixed_point_and_blocked():
+    # A server that URL-decodes twice would resolve %252e%252e -> %2e%2e -> '..'.
+    # The guard decodes to a fixed point, so the bypass fails closed regardless of
+    # the target's decode depth.
+    cap = narrowed_cap()
+    assert parse_target("http://localhost:3000/rest/products/%252e%252e/admin").path == "/rest/admin"
+    with pytest.raises(ScopeViolationError):
+        scope_guard("http://localhost:3000/rest/products/%252e%252e/admin", cap)
+    with pytest.raises(ScopeViolationError):
+        scope_guard("http://localhost:3000/rest/products/%25252e%25252e/admin", cap)
