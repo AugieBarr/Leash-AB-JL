@@ -122,20 +122,27 @@ npx @marp-team/marp-cli docs/slides.md --pdf   # → docs/slides.pdf
 
 ## Step 5 — Submission form  *(Josh · 10 min)*
 
-Fields paste straight from [`SUBMISSION.md`](SUBMISSION.md):
+The form is **3 steps** and **auto-saves a draft** (look for "Last saved at …" / a %
+bar). **Step 1 (Basic Information) is already drafted and saved** — title, short + long
+description, category (**Security**), event track (**Regulated & High-Stakes
+Workflows**), and the five Technologies (**Band Agentic Mesh / Band Integrations / Band
+Control Plane / Anthropic Claude / Claude Code** — Python/Elixir aren't in their curated
+list, so the five Band+Claude tags are the accurate set). Verify it, then do Steps 2–3:
 
-| Form field | Source |
-|---|---|
-| Project Title | SUBMISSION.md |
-| Short Description | SUBMISSION.md |
-| Long Description | SUBMISSION.md |
-| Technology & Category Tags | SUBMISSION.md |
-| Cover Image | `docs/img/cover.png` |
-| Video Presentation | the Loom/YouTube link (Step 3) |
-| Slide Presentation | `docs/slides.pdf` (Step 4) |
-| Public GitHub Repository | https://github.com/AugieBarr/Leash-AB-JL |
-| Demo Application Platform | the Loom/YouTube link |
-| Application URL | the Loom/YouTube link |
+**Step 2 — Media (all three are FILE UPLOADS via the native picker):**
+
+| Field | File | Required |
+|---|---|---|
+| Cover Image | `docs/img/cover.png` (drag-drop) | optional |
+| Video Presentation | `leash-demo.mp4` (Step 3) | **yes** |
+| Slide Presentation | `docs/slides.pdf` (Step 4) | **yes** |
+
+> **The form's Step 3 is gated** behind the two required Step-2 uploads — it can't be
+> reached until the video + slides are in. It most likely holds the **GitHub repo URL**
+> (https://github.com/AugieBarr/Leash-AB-JL) and the **Application / Demo URL** (the Loom
+> link). Fill those there, then submit.
+
+Long-form copy, if you ever need to re-enter Step 1, lives in [`SUBMISSION.md`](SUBMISSION.md).
 
 - Done when: the form is submitted and the confirmation shows.
 
