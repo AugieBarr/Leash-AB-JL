@@ -45,10 +45,12 @@ A security-engineering lead whose SOC 2 or PCI-DSS program has to produce a pene
 ```
                   BAND CASE ROOM  (every agent holds a persistent WebSocket; the human sees all)
   TIER 0  Human Operator — approves exploitation; holds the kill-switch; reads the live audit stream
-  TIER 1  BRAIN AGENTS        Commander · ScopeWarden · Auditor
-  TIER 2  SPECIALISTS         Recon Scout · SQLi Hunter · XSS Hunter · Auth Breaker
+  TIER 1  BRAIN AGENTS        Commander · ScopeWarden · Auditor                     (Python)
+  TIER 2  SPECIALISTS         Recon Scout · SQLi Hunter · XSS Hunter · Auth Breaker  (Python)
                               Prompt-Injection Tester · Data Exposure Sentinel · Reporter
                               (recruited into the room per discovery)
+  CROSS-FW  Aegis             independent scope attestor — re-derives ScopeWarden    (Elixir/OTP)
+                              grants in a second runtime and attests them in-room
   TIER 3  WORKER TOOL-JOBS    http_probe · crawl · sqlmap · ffuf  (semaphore-bounded fan-out)
 ```
 
