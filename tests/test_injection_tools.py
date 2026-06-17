@@ -60,7 +60,28 @@ async def test_confirms_prompt_injection(tmp_path, monkeypatch):
     out = await handler(model(path="/rest/chatbot/respond?query="))
     assert "VULNERABLE" in out
     assert len(eng.findings) == 1 and eng.findings[0]["type"] == "prompt_injection"
+    # The raw response body is never persisted to the audit chain.
+    chain = (eng.ledger.dir / "audit.ndjson").read_text()
+    assert f"Sure! {_CANARY}" not in chain
     assert eng.ledger.verify_chain().ok
+
+
+async def test_reflector_not_confirmed(tmp_path, monkeypatch):
+    """A dumb echo endpoint reflects the canary by reflection, not instruction-
+    following — the baseline marker comes back too, so we must NOT confirm injection."""
+    eng = open_engagement("t-inj-reflect", "localhost", 3000, root=str(tmp_path))
+    _scope(eng, ["/rest/echo"])
+    await eng.record_approval("/rest/echo", operator="op", tool="manual_prompt_injection_probe")
+
+    class _Reflector(_FakeClient):
+        async def get(self, url):
+            return _FakeResp(200, url)  # echoes the request back, like a reflector
+
+    monkeypatch.setattr(httpx, "AsyncClient", _Reflector)
+    model, handler = _pair(eng, "ManualPromptInjectionProbeInput", gate_timeout=0.1)
+    out = await handler(model(path="/rest/echo?query="))
+    assert "not confirmed" in out and "reflector" in out
+    assert eng.findings == []
 
 
 async def test_no_canary_not_confirmed(tmp_path, monkeypatch):
