@@ -167,6 +167,35 @@
   .agent .acount { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
   .agent.active .acount, .agent.engaged .acount { color: var(--text); }
 
+  /* ===== Specialist Registry ===== */
+  .reg-intro { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-muted); line-height: 1.75; margin-bottom: 16px; max-width: 760px; }
+  .reg-intro b { color: var(--accent-60); font-weight: 500; }
+  .registry { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .spec { display: flex; flex-direction: column; gap: 11px; padding: 16px 17px; border: 1px solid var(--border);
+    border-radius: 8px; background: var(--bg-2); transition: border-color .3s ease, transform .3s ease, box-shadow .3s ease; }
+  .spec:hover { border-color: var(--border-hover); transform: translateY(-2px); box-shadow: 0 16px 36px -18px rgba(232,115,90,0.12); }
+  .spec.recommended { border-color: var(--warn-30); }
+  .spec.recruited { border-color: var(--accent-30); }
+  .spec.active { border-color: var(--accent-30); box-shadow: 0 0 0 1px var(--accent-30); }
+  .spec-head { display: flex; align-items: flex-start; gap: 10px; }
+  .spec .sname { font-size: 13.5px; font-weight: 600; color: var(--text); letter-spacing: -0.005em; line-height: 1.25; }
+  .spec.active .sname, .spec.recruited .sname { color: var(--accent); }
+  .spec .shandle { font-family: var(--font-mono); font-size: 9.5px; color: var(--text-muted); margin-top: 3px; }
+  .spec .sstat { margin-left: auto; font-family: var(--font-mono); font-size: 8.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    padding: 3px 7px; border-radius: 4px; border: 1px solid var(--border); color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
+  .spec.recommended .sstat { color: var(--warn); border-color: var(--warn-30); background: var(--warn-08); animation: pulse 1.8s ease-in-out infinite; }
+  .spec.recruited .sstat, .spec.active .sstat { color: var(--accent); border-color: var(--accent-30); background: var(--accent-08); }
+  .spec .sclass { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  .spec .sclass b { color: var(--text); font-weight: 600; }
+  .spec .sleash { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; padding-top: 4px; }
+  .spec .lb { font-family: var(--font-mono); font-size: 8.5px; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 3px 7px; border-radius: 4px; border: 1px solid var(--ok-30); color: var(--ok); background: var(--ok-08); }
+  .spec .owb { font-family: var(--font-mono); font-size: 8.5px; letter-spacing: 0.1em; padding: 3px 7px; border-radius: 4px;
+    border: 1px solid var(--border); color: var(--text-muted); }
+  .spec.byo { border-style: dashed; gap: 9px; }
+  .spec.byo .sname { color: var(--accent-60); }
+  .spec.byo .byo-d { font-size: 11.5px; color: var(--text-muted); line-height: 1.6; }
+
   /* ===== Live Vulnerabilities ===== */
   .vulns { display: flex; flex-direction: column; gap: 10px; }
   .vuln { display: flex; align-items: flex-start; gap: 14px; padding: 15px 18px; border: 1px solid var(--border);
