@@ -70,9 +70,9 @@ from governance.scope_guard import ScopeViolationError, scope_guard
 from swarm.control_channel import enforce_gate
 from tools._subprocess import ensure_leading_slash
 
-_MARKER = "$marker"
-_PAYLOAD = "$payload"
-_BENIGN = "$benign"
+_MARKER = $marker
+_PAYLOAD = $payload
+_BENIGN = $benign
 
 _GATE_DENIED = (
     "BLOCKED: human approval required before exploitation. The operator halted "
