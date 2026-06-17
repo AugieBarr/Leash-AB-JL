@@ -79,24 +79,62 @@ def recon_tools(eng):
                     found.append({"path": path, "error": str(e)[:80]})
 
         await eng.log("tool_result", tool="crawl_target", found=found)
+
+        # Classify the surface from what actually answered (HTTP < 400), so the
+        # Commander recruits a specialist only for a class recon really observed —
+        # the discovery->recruit loop is driven by live signals, not a static list.
+        def _live(prefix: str) -> bool:
+            return any(
+                isinstance(f.get("status"), int) and f["status"] < 400
+                and str(f.get("path", "")).startswith(prefix)
+                for f in found
+            )
+
+        candidates: list[str] = []
+        bullets: list[str] = []
+        if _live("/rest/products/search"):
+            candidates += ["sqli", "xss"]
+            bullets.append(
+                "- /rest/products/search?q= flows the q parameter into a SQL query — a SQL injection "
+                "candidate (recruit the SQLi Hunter);"
+            )
+            bullets.append(
+                "- /rest/products/search?q= also echoes the q parameter into the HTML response — a "
+                "reflected-input / XSS candidate (recruit the XSS Hunter);"
+            )
+        if _live("/rest/user/login"):
+            candidates.append("auth")
+            bullets.append(
+                "- /rest/user/login is an authentication endpoint that may be bypassable — an auth "
+                "candidate (recruit the Auth Breaker);"
+            )
+        if _live("/rest/chatbot"):
+            candidates.append("prompt_injection")
+            bullets.append(
+                "- /rest/chatbot/* answered — an LLM-backed support endpoint that may follow injected "
+                "instructions — a prompt-injection candidate (recruit the Prompt-Injection Tester);"
+            )
+        if _live("/api/Users"):
+            candidates.append("sensitive_data")
+            bullets.append(
+                "- /api/Users returned account records and may over-expose PII/PHI — a sensitive-data-"
+                "exposure candidate (recruit the Data Exposure Sentinel);"
+            )
+
+        # The classified candidates ride into the audit chain on the surface finding,
+        # so the discovery->recruit mapping is machine-readable from the sealed bundle.
         eng.record_finding(
             type="surface",
             endpoints=[f.get("path") for f in found if f.get("status")],
+            candidates=candidates,
         )
         lines = "\n".join(f"  {f}" for f in found)
-        return (
-            f"Discovered endpoints:\n{lines}\n"
-            "Candidate vulnerability classes for the Commander to route to specialists:\n"
-            "- /rest/products/search?q= flows the q parameter into a SQL query — a SQL injection "
-            "candidate (recruit the SQLi Hunter);\n"
-            "- /rest/products/search?q= also echoes the q parameter into the HTML response — a "
-            "reflected-input / XSS candidate (recruit the XSS Hunter);\n"
-            "- /rest/user/login is an authentication endpoint that may be bypassable — an auth candidate "
-            "(recruit the Auth Breaker);\n"
-            "- /rest/chatbot/* is an LLM-backed support endpoint that may follow injected instructions — a "
-            "prompt-injection candidate (recruit the Prompt-Injection Tester);\n"
-            "- /api/Users / /rest/user/* return account data and may over-expose PII/PHI — a "
-            "sensitive-data-exposure candidate (recruit the Data Exposure Sentinel)."
+        classes = (
+            "Candidate vulnerability classes (observed live) for the Commander to route to specialists:\n"
+            + "\n".join(bullets)
+            if bullets
+            else "No classifiable attack surface answered on this pass."
         )
+        return f"Discovered endpoints:\n{lines}\n{classes}"
 
     return [(HttpProbeInput, httpprobe), (CrawlTargetInput, crawltarget)]
