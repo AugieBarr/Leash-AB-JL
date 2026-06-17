@@ -119,8 +119,10 @@ def recon_tools(eng):
                 "exposure candidate (recruit the Data Exposure Sentinel);"
             )
 
-        # The classified candidates ride into the audit chain on the surface finding,
-        # so the discovery->recruit mapping is machine-readable from the sealed bundle.
+        # The classified candidates ride into the audit chain — on the tool_result
+        # (so the live Control Center can light up the matching specialist) and on the
+        # surface finding (so the discovery->recruit mapping is in the sealed bundle).
+        await eng.log("tool_result", tool="crawl_target", found=found, candidates=candidates)
         eng.record_finding(
             type="surface",
             endpoints=[f.get("path") for f in found if f.get("status")],
