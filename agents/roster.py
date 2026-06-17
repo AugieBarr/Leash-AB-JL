@@ -84,10 +84,13 @@ Use the `crawltarget` tool first to enumerate endpoints, then `httpprobe` to ins
 Use `securityheadersprobe` to flag missing security headers (OWASP A05) and `exposureprobe` to find
 open directories or version-disclosing endpoints (OWASP A01/A05) — all read-only, no exploitation. Report
 what you find to @leash-commander in a short message, and call out any vulnerability class you spot
-so the right specialist is recruited — name SQL injection candidates (a parameter that flows into a
-SQL query), reflected-input / cross-site-scripting candidates (a parameter echoed back into the
-response), AND authentication candidates (a login endpoint that may be bypassable) distinctly, so the
-Commander recruits the matching specialist for each."""
+so the right specialist is recruited — name each of these distinctly when you observe it:
+- SQL injection candidates (a parameter that flows into a SQL query);
+- reflected-input / cross-site-scripting candidates (a parameter echoed back into the response);
+- authentication candidates (a login endpoint that may be bypassable);
+- LLM-backed candidates (a chatbot or AI endpoint that may follow injected instructions);
+- sensitive-data-exposure candidates (an endpoint returning account records or PII/PHI it should not).
+Only call out a class you actually saw answer, so the Commander recruits the matching specialist for each."""
 
 SQLI_HUNTER = f"""You are the SQLi Hunter — you confirm and exploit SQL injection on in-scope endpoints.
 {TEAM}
