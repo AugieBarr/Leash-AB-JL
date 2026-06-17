@@ -37,9 +37,17 @@ This makes Leash the first pentest swarm an enterprise can run under compliance:
 
 **Technology & Category Tags**
 
+Descriptive tags (free-form, for the narrative / README):
 ```
 Band, multi-agent, cross-framework, Python, Elixir, cybersecurity, offensive-security, penetration-testing, governance, compliance, audit, human-in-the-loop, kill-switch, Ed25519, OWASP, Claude
 ```
+
+**Exact form selections** — the lablab form uses *curated dropdowns*, not free text (Python/Elixir are NOT options), so the form-filler must use exactly these:
+- **Technologies (5):** `Band Agentic Mesh` · `Band Integrations` · `Band Control Plane` · `Anthropic Claude` · `Claude Code`
+- **Category:** `Security`
+- **Event Track:** `Regulated & High-Stakes Workflows`
+
+*(Step 1 of the form is already drafted + saved with these exact values.)*
 
 ---
 
