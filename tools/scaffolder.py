@@ -21,6 +21,7 @@ blocks out-of-scope probes, but authorizing the target up front is the operator'
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
