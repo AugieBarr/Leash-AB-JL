@@ -46,6 +46,11 @@ from cryptography.hazmat.primitives.serialization import (
 
 GENESIS: bytes = b"\x00" * 32
 
+# Domain-separation tag for the detached signature over a sealed-bundle manifest,
+# so a manifest signature can never be confused with a per-event signature (whose
+# signing bytes begin with an 8-byte sequence number).
+MANIFEST_SIG_CONTEXT: bytes = b"leash-audit-bundle-manifest-v1\x00"
+
 
 def _seq_be64(seq: int) -> bytes:
     return seq.to_bytes(8, "big", signed=False)
@@ -118,6 +123,15 @@ class AuditLedger:
         party can verify the chain without the private key."""
         return self._pk.public_bytes(Encoding.Raw, PublicFormat.Raw)
 
+    def sign_manifest(self, manifest_bytes: bytes) -> bytes:
+        """Detached Ed25519 signature over a sealed-bundle manifest, domain-separated
+        from per-event signatures. Because the manifest carries the chain's
+        ``event_count`` and ``chain_tail_hash``, signing it lets a holder of ONLY
+        the public key detect *truncation* of the chain — dropping trailing events
+        and re-deriving a consistent shorter manifest no longer verifies, since the
+        attacker cannot forge this signature without the private key."""
+        return self._sk.sign(MANIFEST_SIG_CONTEXT + manifest_bytes)
+
     # ----- append --------------------------------------------------------
     async def append(self, kind: str, payload: str) -> int:
         """Append one signed event and return its sequence number. Atomic under
@@ -177,6 +191,20 @@ class AuditLedger:
             else self._pk
         )
         return verify_ndjson(self.path, pk)
+
+
+def verify_manifest_signature(
+    public_key: Ed25519PublicKey, manifest_bytes: bytes, sig: bytes
+) -> bool:
+    """True iff ``sig`` is a valid detached signature over ``manifest_bytes`` under
+    ``public_key`` (with the manifest domain-separation tag). Used by the bundle
+    verifier to confirm the manifest — and thus the chain length/tail it commits
+    to — was not altered or truncated by anyone lacking the private key."""
+    try:
+        public_key.verify(sig, MANIFEST_SIG_CONTEXT + manifest_bytes)
+        return True
+    except InvalidSignature:
+        return False
 
 
 def verify_ndjson(

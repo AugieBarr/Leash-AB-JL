@@ -2,9 +2,13 @@
 
 ``export_bundle`` verifies the chain, refuses to seal a tampered one, then packs
 the NDJSON ledger + a manifest (which carries the Ed25519 public key, tail hash,
-and event count) into a portable ``<id>_bundle.tar.gz`` with a sidecar SHA-256.
-``verify_bundle`` re-checks everything from the tarball alone — no live ledger,
-no private key — so any third party can confirm the trail was not altered.
+and event count) + a **detached Ed25519 signature over that manifest** into a
+portable ``<id>_bundle.tar.gz`` with a sidecar SHA-256. ``verify_bundle`` re-checks
+everything from the tarball alone — no live ledger, no private key — so any third
+party can confirm the trail was not added to, altered, reordered, **or truncated**:
+the signed manifest commits to the chain length and tail, so dropping trailing
+events (and re-deriving a consistent shorter manifest) no longer verifies — an
+attacker without the private key cannot forge the manifest signature.
 """
 from __future__ import annotations
 
@@ -21,7 +25,7 @@ from typing import Optional
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
-from governance.audit_ledger import AuditLedger, verify_ndjson
+from governance.audit_ledger import AuditLedger, verify_manifest_signature, verify_ndjson
 
 
 def _sha256_file(path: Path) -> str:
@@ -71,11 +75,16 @@ def export_bundle(
         "findings": findings or [],
     }
     manifest_bytes = json.dumps(manifest, indent=2).encode("utf-8")
+    # Detached signature over the manifest: binds event_count + chain_tail_hash so
+    # a truncated chain with a re-derived manifest cannot pass verification without
+    # the private key.
+    manifest_sig_b64 = base64.b64encode(ledger.sign_manifest(manifest_bytes))
 
     bundle_path = ledger.dir / f"{engagement_id}_bundle.tar.gz"
     with tarfile.open(bundle_path, "w:gz") as tar:
         _add_bytes(tar, "audit.ndjson", ndjson_bytes)
         _add_bytes(tar, "manifest.json", manifest_bytes)
+        _add_bytes(tar, "manifest.sig", manifest_sig_b64)
 
     sha = _sha256_file(bundle_path)
     (ledger.dir / f"{engagement_id}_bundle.sha256").write_text(f"{sha}  {bundle_path.name}\n")
@@ -97,10 +106,15 @@ def verify_bundle(bundle_path: str | os.PathLike) -> BundleVerifyResult:
     bundle_path = Path(bundle_path)
     with tarfile.open(bundle_path, "r:gz") as tar:
         names = set(tar.getnames())
-        if not {"manifest.json", "audit.ndjson"} <= names:
-            return BundleVerifyResult(False, "bundle missing manifest.json or audit.ndjson")
-        manifest = json.loads(tar.extractfile("manifest.json").read().decode("utf-8"))
+        if not {"manifest.json", "audit.ndjson", "manifest.sig"} <= names:
+            return BundleVerifyResult(
+                False, "bundle missing manifest.json, audit.ndjson, or manifest.sig"
+            )
+        # Keep the manifest's RAW bytes — the signature is over exactly these.
+        manifest_bytes = tar.extractfile("manifest.json").read()
+        manifest_sig = base64.b64decode(tar.extractfile("manifest.sig").read())
         ndjson_text = tar.extractfile("audit.ndjson").read().decode("utf-8")
+    manifest = json.loads(manifest_bytes.decode("utf-8"))
 
     # These three fields are load-bearing for the cross-check below; a missing one
     # is a malformed bundle, not a value mismatch — surface that distinctly.
@@ -114,6 +128,17 @@ def verify_bundle(bundle_path: str | os.PathLike) -> BundleVerifyResult:
     pubkey = Ed25519PublicKey.from_public_bytes(
         base64.b64decode(manifest["pubkey_ed25519_b64"])
     )
+
+    # Verify the manifest signature FIRST: it commits to the chain's length and
+    # tail, so this is what makes truncation (and any manifest edit) detectable by
+    # a holder of only the public key. Everything below is defence-in-depth.
+    if not verify_manifest_signature(pubkey, manifest_bytes, manifest_sig):
+        return BundleVerifyResult(
+            False,
+            "manifest signature invalid — the manifest was altered or truncated, "
+            "or signed by a different key",
+            manifest,
+        )
 
     result = verify_ndjson(ndjson_text.splitlines(), pubkey)
 
