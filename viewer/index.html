@@ -926,7 +926,7 @@
     $("q").addEventListener("input", (e) => { query = e.target.value.trim().toLowerCase(); applyFilters(); });
     $("kill").addEventListener("click", killSwitch);
 
-    renderRoster();
+    renderRoster(); renderRegistry();
     const res = await fetch("/list"); const { engagements } = await res.json();
     const pick = $("pick"); pick.innerHTML = "";
     for (const name of engagements) { const o = document.createElement("option"); o.value = name; o.textContent = name; pick.appendChild(o); }
