@@ -908,7 +908,7 @@
     $("vulns").innerHTML = '<div class="vuln-empty">No vulnerabilities confirmed yet — recon in progress.</div>';
     $("defenses").innerHTML = '<div class="def-empty">No interventions yet — the leash hasn\'t had to pull.</div>';
     stream.innerHTML = '<div class="empty">waiting for the first event…</div>';
-    renderRoster(); renderGate(); renderHaltBanner(); updateCCState();
+    renderRoster(); renderRegistry(); renderGate(); renderHaltBanner(); updateCCState();
   }
   function connect(engagement) {
     resetState(engagement);
