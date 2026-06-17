@@ -13,7 +13,7 @@ Copy-paste-ready fields for the Band of Agents submission form. Deadline
 Leash — Governed Pentest Agent Swarm on Band
 ```
 
-**Short Description** (≤150 chars)
+**Short Description** (live form limit is **255 chars**; this is 153 — fits as-is, no trim needed)
 
 ```
 A cross-framework agent swarm that hunts web vulns through a Band room — with scope enforcement, a human approval gate, and a tamper-evident audit chain.
