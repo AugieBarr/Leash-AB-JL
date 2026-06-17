@@ -8,12 +8,9 @@ is in [`RUNSHEET.md`](RUNSHEET.md).
 
 ---
 
-## Step 1 — Repo visibility  *(Augie · 1 min)*
+## Step 1 — Repo visibility  *(Augie · ✅ done)*
 
-- Current state: **private**.
-- Path: https://github.com/AugieBarr/Leash-AB-JL/settings → **Danger Zone** →
-  "Change visibility" → "Make public" → confirm.
-- Done when: the repo loads in a logged-out browser.
+- State: **public** — confirmed at https://github.com/AugieBarr/Leash-AB-JL.
 
 ---
 
@@ -149,12 +146,3 @@ current plan** — registering an 11th requires a paid upgrade. This is cosmetic
 `--dry-run` + `./aegis/aegis check` (live Elixir→Band auth, HTTP 200) already prove a
 real, separate Elixir runtime coordinating with Band. If the plan is upgraded later,
 `leash-aegis` registers via the same flow as the other ten and posts live in-room.
-
-- A new agent `leash-aegis` registered at app.band.ai (same flow as the other ten),
-  its `agent_id` + `api_key` added to `agent_config.yaml`, added to the room.
-- During recording:
-  ```bash
-  export AEGIS_API_KEY=...        # leash-aegis key
-  ./aegis/aegis attest --room <room-id> --restrict-paths /rest/products
-  ```
-  The `🛡️ AEGIS …` attestation then appears in the Band room as a governance event.
