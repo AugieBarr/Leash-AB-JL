@@ -30,11 +30,14 @@ _GATE_DENIED = (
 # Patterns that should not appear in a response not meant to expose them. We report
 # the TYPE and COUNT of each hit, never the matched value — a DLP test must not
 # itself become a data-exfiltration step.
+# All patterns use a non-capturing group + word boundaries so re.findall returns
+# full matches (counted, never stored) and email-shaped substrings inside base64
+# blobs or bearer tokens don't trip a false positive.
 _PATTERNS = {
-    "email": re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"),
+    "email": re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"),
     "us_ssn": re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),
     "credit_card": re.compile(r"\b(?:\d{4}[ -]?){3}\d{4}\b"),
-    "phi_keyword": re.compile(r"\b(diagnosis|patient|medical record|prescription|ICD-?10)\b", re.I),
+    "phi_keyword": re.compile(r"\b(?:diagnosis|patient|medical record|prescription|ICD-?10)\b", re.I),
 }
 
 
