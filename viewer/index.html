@@ -660,6 +660,32 @@
     }).join("");
   }
 
+  // ----- specialist registry -----
+  function specStatus(id) {
+    if (id === lastAgent && !halted) return "active";
+    if (recruited.has(id)) return "recruited";
+    if (recommended.has(id)) return "recommended";
+    return "available";
+  }
+  function renderRegistry() {
+    const box = $("registry"); if (!box) return;
+    box.innerHTML = REGISTRY.map((s) => {
+      const st = specStatus(s.id);
+      return '<div class="spec ' + st + '">' +
+        '<div class="spec-head"><div><div class="sname">' + esc(s.name) + '</div>' +
+        '<div class="shandle">@' + esc(s.handle) + '</div></div>' +
+        '<span class="sstat">' + st + '</span></div>' +
+        '<div class="sclass">confirms <b>' + esc(s.cls) + '</b></div>' +
+        '<div class="sleash"><span class="owb">OWASP ' + esc(s.owasp) + '</span>' +
+        '<span class="lb">scope</span><span class="lb">gate</span><span class="lb">audit</span></div>' +
+        '</div>';
+    }).join("") +
+      '<div class="spec byo"><div class="spec-head"><div class="sname">+ Bring your own</div></div>' +
+      '<div class="byo-d">Author a governed tester — one tool factory + one role brief — and it recruits onto Band under the same leash.</div></div>';
+    const live = recommended.size + recruited.size;
+    $("reg-hint").textContent = live ? live + " recruited / flagged" : REGISTRY.length + " available";
+  }
+
   // ----- vulns -----
   function ingestVulns(rec) {
     for (const v of deriveVulns(rec)) {
