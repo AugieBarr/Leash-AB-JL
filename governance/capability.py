@@ -9,6 +9,7 @@ host -> port -> path, default-deny throughout.
 """
 from __future__ import annotations
 
+import posixpath
 import re
 import secrets
 import time
@@ -20,6 +21,16 @@ class EmptyScopeError(Exception):
     """Raised when a restriction intersects its parent to an empty (deny-all) scope."""
 
 
+def _norm_prefix(p: str) -> str:
+    """Normalize a path prefix at issuance so a sloppy grant ('/rest/products/..',
+    '/rest//products', a missing leading slash) can't behave surprisingly against
+    the already-normalized target path. ``*`` (all-paths) is preserved verbatim."""
+    if p == "*":
+        return "*"
+    p = p if p.startswith("/") else "/" + p
+    return posixpath.normpath(p)
+
+
 @dataclass(frozen=True)
 class ScopeSpec:
     hosts: tuple[str, ...]          # glob patterns; '*' matches a single DNS label
@@ -28,7 +39,11 @@ class ScopeSpec:
 
     @staticmethod
     def of(hosts, ports, paths=("/",)) -> "ScopeSpec":
-        return ScopeSpec(tuple(hosts), tuple(int(p) for p in ports), tuple(paths))
+        return ScopeSpec(
+            tuple(hosts),
+            tuple(int(p) for p in ports),
+            tuple(_norm_prefix(p) for p in paths),
+        )
 
 
 @dataclass(frozen=True)

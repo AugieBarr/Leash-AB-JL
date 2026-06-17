@@ -62,6 +62,21 @@ def test_glob_matches_single_label():
     assert not check_capability(cap, Target("app.prod.internal", 80, "/"))  # '*' is one label
 
 
+def test_sloppy_path_prefix_is_normalized_at_issuance():
+    # A grant carrying a traversal, doubled slash, or missing leading slash is
+    # normalized to its real prefix so it can't behave surprisingly against the
+    # already-normalized target path. '*' (all paths) is preserved verbatim.
+    assert ScopeSpec.of(["localhost"], [3000], ["/rest/products/.."]).paths == ("/rest",)
+    assert ScopeSpec.of(["localhost"], [3000], ["/rest//products"]).paths == ("/rest/products",)
+    assert ScopeSpec.of(["localhost"], [3000], ["rest/products"]).paths == ("/rest/products",)
+    assert ScopeSpec.of(["localhost"], [3000], ["*"]).paths == ("*",)
+    # The '..' grant is enforced as its parent (/rest), not the sibling the raw
+    # string might have been hoped to reach.
+    cap = root_capability("w", ScopeSpec.of(["localhost"], [3000], ["/rest/products/.."]))
+    assert check_capability(cap, Target("localhost", 3000, "/rest/orders"))  # under /rest
+    assert not check_capability(cap, Target("localhost", 3000, "/admin"))
+
+
 def test_path_boundary_prevents_sibling_prefix_leak():
     # The crown-jewel invariant: a /rest/products cap permits itself and sub-paths,
     # but NEVER a sibling that merely shares the textual prefix.
