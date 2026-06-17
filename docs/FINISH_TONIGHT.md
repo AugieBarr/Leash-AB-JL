@@ -32,7 +32,7 @@ colima start                                   # if docker isn't up
 docker compose up -d --wait juice-shop
 curl -s localhost:3000 | grep -q OWASP && echo "target ready"
 uv sync --extra dev
-python connect_test.py                         # expect "10/10 agents connected" before any live Band beat
+python connect_test.py                         # expect "=== 10/10 agents connected simultaneously ===" before any live Band beat
 (cd aegis && mix escript.build)                # builds ./aegis/aegis
 ```
 
