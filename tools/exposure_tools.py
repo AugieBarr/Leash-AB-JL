@@ -57,8 +57,8 @@ def exposure_tools(eng, *, gate_timeout: float = 600.0, gate_poll: float = 0.4):
         """Confirm sensitive-data (PII/PHI) exposure on an in-scope endpoint by fetching it and scanning the response for sensitive patterns; reports the type and count of any leak, never the raw values."""
 
         path: str = Field(
-            default="/rest/user/whoami",
-            description="Endpoint path to inspect for sensitive-data exposure, e.g. /rest/user/whoami",
+            default="/api/Users",
+            description="Endpoint path to inspect for sensitive-data exposure, e.g. /api/Users (returns account records unauthenticated on Juice Shop). Note: the probe is unauthenticated, so an endpoint that only leaks PII behind a session may return 401/403 and read as not-confirmed.",
         )
 
     async def manualdataexposureprobe(args: ManualDataExposureProbeInput) -> str:
