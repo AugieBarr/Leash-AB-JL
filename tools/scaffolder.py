@@ -206,6 +206,12 @@ def render_module(args: argparse.Namespace) -> str:
     name = args.name
     label = "leash-" + name.replace("_", "-")
     vuln_label = args.name.replace("_", " ")
+    target_path = args.target_path if args.target_path.startswith("/") else "/" + args.target_path
+    # Literal positions (_MARKER/_PAYLOAD/_BENIGN and the Field default) are emitted as
+    # json.dumps-encoded string literals, so an attacker-crafted --marker/--payload that
+    # contains quotes, backslashes, or braces can never break out and inject code. The
+    # remaining free text (description, owasp_class, target_path) was already refused at
+    # validation if it carried a string/f-string-breakout character.
     return _MODULE.substitute(
         human_title=args.description.rstrip("."),
         description=args.description,
@@ -213,10 +219,11 @@ def render_module(args: argparse.Namespace) -> str:
         name=name,
         camel=_camel(name),
         label=label,
-        marker=args.marker or "",
-        payload=args.payload,
-        benign=_BENIGN,
-        target_path=args.target_path if args.target_path.startswith("/") else "/" + args.target_path,
+        marker=json.dumps(args.marker or ""),
+        payload=json.dumps(args.payload),
+        benign=json.dumps(_BENIGN),
+        target_path=target_path,
+        target_path_lit=json.dumps(target_path),
         docstring=args.description,
         detail=f"{vuln_label} probe on the endpoint",
         finding_type=args.finding_type,
