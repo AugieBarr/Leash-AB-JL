@@ -420,6 +420,35 @@
     <div class="reg-intro">A platform of governed test agents. Recon classifies the live surface and the Commander recruits the matching specialist onto <b>Band</b> — and every agent inherits the same <b>leash</b>: a fail-closed scope, a human approval gate, a tamper-evident audit append. Adding a new tester is one tool factory + one role brief.</div>
     <div id="registry" class="registry"></div>
 
+    <div class="sechead"><span class="line"></span><span class="label"><span class="num">02.5</span>Recruit &amp; Leash</span><span class="grow"></span><span class="hint">how it works</span></div>
+    <div class="tutorial">
+      <div class="tut-step span2">
+        <div class="tnum">The leash — three code-path invariants, not prompt instructions</div>
+        <div class="tbody">Every specialist inherits these the moment it is built. They hold even if the agent's LLM is prompt-injected or jailbroken.</div>
+        <div class="tut-rule">
+          <span class="r"><b>scope fence</b> — off-target reaches fail closed before any request leaves</span>
+          <span class="r"><b>approval gate</b> — a human APPROVE is required before any exploitation</span>
+          <span class="r"><b>audit entry</b> — every action is appended to the Ed25519 chain</span>
+        </div>
+      </div>
+      <div class="tut-step"><div class="tnum">Step 01</div><div class="ttitle">Recon classifies the surface</div><div class="tbody">The Recon Scout crawls the target on Band and emits candidates — a card above lights <b>recommended</b> automatically. You watch for the badge; you never recruit blind.</div></div>
+      <div class="tut-step"><div class="tnum">Step 02</div><div class="ttitle">Recruit onto Band</div><div class="tbody">The Commander calls <b>recruit_specialist</b> and the agent joins the Band room — leashed before its first message. The card flips to <b>recruited</b> and a <b>recruited</b> event lands in the chain.</div></div>
+      <div class="tut-step"><div class="tnum">Step 03</div><div class="ttitle">The human gate</div><div class="tbody">Before any exploit the specialist requests approval. The gate opens in Section 01 — press <b>A</b> to approve or <b>H</b> to halt. The decision is signed into the chain; the agent cannot move until it lands.</div></div>
+      <div class="tut-step"><div class="tnum">Step 04</div><div class="ttitle">Verify, cold</div><div class="tbody">Seal the bundle and verify offline with only the public key — <b>python -m governance.verify &lt;bundle&gt;</b>. Break any event and every link below it fails.</div></div>
+    </div>
+
+    <div class="sechead"><span class="line"></span><span class="label"><span class="num">02.6</span>Design a Specialist</span><span class="grow"></span><span class="hint">preview only · no writes</span></div>
+    <div class="reg-intro">Describe a vulnerability you want to test. Leash generates a governed specialist for it — the scope → gate → audit leash is a fixed template; you only choose <b>what</b> it probes. Personalize the swarm to your stack; every tester you add is leashed by construction.</div>
+    <div class="create-panel">
+      <div class="cp-form">
+        <div class="cp-field"><label>Vulnerability class</label><input id="cp-vuln" type="text" placeholder="e.g. GraphQL Introspection, SSRF, JWT Forgery" spellcheck="false" /></div>
+        <div class="cp-field"><label>Target scope hint</label><input id="cp-scope" type="text" placeholder="e.g. /graphql on localhost:3000" spellcheck="false" /></div>
+        <div class="cp-field"><label>Probe depth</label><select id="cp-depth"><option value="passive">passive — detect only (no gate)</option><option value="active" selected>active — exploit (gate required)</option><option value="full-chain">full-chain — multi-step (gate required)</option></select></div>
+        <div class="cp-field"><label>Agent handle (auto-derived if blank)</label><input id="cp-handle" type="text" placeholder="leash-&lt;name&gt;" spellcheck="false" /></div>
+      </div>
+      <div class="cp-preview" id="cp-preview"><div class="cp-empty">Fill in a vulnerability class and scope hint to preview the governed specialist.</div></div>
+    </div>
+
     <div class="sechead"><span class="line"></span><span class="label"><span class="num">03</span>Live Findings</span><span class="grow"></span><span id="vhint" class="hint"></span></div>
     <div id="vulns" class="vulns"><div class="vuln-empty">No vulnerabilities confirmed yet — recon in progress.</div></div>
 
