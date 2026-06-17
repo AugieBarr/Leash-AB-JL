@@ -429,6 +429,21 @@
   let query = "", follow = true, focusIdx = -1, badSeq = null;
   let vulns = [], defenses = [], halted = false, lastAgent = null, pendingGate = null, gateBusy = false;
   const agentCount = new Map();
+  const recommended = new Set();  // specialists recon flagged a matching surface for
+  const recruited = new Set();    // specialists pulled into the Band room (a `recruited` event)
+
+  // The platform catalog: the governed offensive testers a security team can recruit.
+  // Each inherits the same leash (scope → human gate → tamper-evident audit). `cand`
+  // is the recon surface-class that recommends it; status is derived from the stream.
+  const REGISTRY = [
+    { id: "leash-sqli-hunter",      name: "SQLi Hunter",             handle: "leash-sqli-hunter",      cls: "SQL Injection",          owasp: "A03",     cand: "sqli" },
+    { id: "leash-xss-hunter",       name: "XSS Hunter",              handle: "leash-xss-hunter",       cls: "Cross-Site Scripting",   owasp: "A03",     cand: "xss" },
+    { id: "leash-auth-breaker",     name: "Auth Breaker",            handle: "leash-auth-breaker",     cls: "Authentication Bypass",  owasp: "A07",     cand: "auth" },
+    { id: "leash-injection-tester", name: "Prompt-Injection Tester", handle: "leash-injection-tester", cls: "Prompt Injection",       owasp: "LLM01",   cand: "prompt_injection" },
+    { id: "leash-data-sentinel",    name: "Data Exposure Sentinel",  handle: "leash-data-sentinel",    cls: "Sensitive-Data Exposure", owasp: "A01/A04", cand: "sensitive_data" },
+  ];
+  const CAND_TO_AGENT = { sqli: "leash-sqli-hunter", xss: "leash-xss-hunter", auth: "leash-auth-breaker",
+    prompt_injection: "leash-injection-tester", sensitive_data: "leash-data-sentinel" };
 
   const AGENTS = [
     { id: "leash-commander",   name: "Commander",   role: "orchestration" },
