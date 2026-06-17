@@ -47,7 +47,7 @@ Band, multi-agent, cross-framework, Python, Elixir, cybersecurity, offensive-sec
 
 | Field | Source |
 |---|---|
-| **Cover Image** | `docs/img/control-center.png` (add a title overlay) — the live Control Center with the ten-agent roster, findings feed, and Governance Holds panel |
+| **Cover Image** | `docs/img/cover.png` — **ready**, a branded 1200×630 cover with the title + tagline already on it (alt: `docs/img/control-center.png`, the live UI) |
 | **Video Presentation** | Record from `docs/RUNSHEET.md` (≤3:00). The cross-framework Aegis beat lands at the ScopeWarden capability step |
 | **Slide Presentation** | `docs/slides.md` (Marp deck — export to PDF/HTML) |
 
@@ -75,7 +75,7 @@ Band, multi-agent, cross-framework, Python, Elixir, cybersecurity, offensive-sec
 ## Deliverable status (owners)
 
 - [x] Title / Short / Long / Tags — above
-- [ ] Cover image (title overlay on control-center.png) — **either**
+- [x] Cover image — `docs/img/cover.png` ready (title already on it)
 - [ ] Video (≤3:00, RUNSHEET ready) — **Augie/Josh**
 - [ ] Slide deck (`docs/slides.md` → export) — **either**
 - [ ] Repo public — **Augie**

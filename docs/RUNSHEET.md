@@ -73,10 +73,13 @@ The Auditor's machine-posted **`AUDIT SEALED — <hash>`** message appears in-ch
 *The proof isn't just written to disk — it's posted into the room, as an event. It lands
 where the swarm lives. **You cannot forge this record. Leash — governed, on Band.***
 
-> An optional live-recruit intercut: the live swarm
+> The live-recruit intercut is **essential** for the "agents coordinate *through* Band
+> during the workflow" judging criterion — not a bonus: the live swarm
 > (`python -m swarm.launcher --engagement-id demo --seed --brain-only`) shows the Commander
-> recruiting the Recon Scout — good for ~10s at the top. It's slow and nondeterministic, so
-> it stays a bonus, never the spine; the seal-in-room beat is the reliable Band proof.
+> recruiting the Recon Scout + `@mention` handoffs, ~20–30s at the top. Because it's slow and
+> nondeterministic, it's captured **separately and intercut** — run until it behaves, then use
+> that clip — never the live continuous spine. The deterministic spine (control_demo +
+> tamper_demo) still carries the governance beats; the seal-in-room is the second Band proof.
 > Pre-check before any live intercut: `python connect_test.py` → `10/10 agents connected`
 > confirms every agent authenticates on Band (no LLM cost, clean disconnect) — so the
 > launcher run won't stall on a connectivity surprise on camera.

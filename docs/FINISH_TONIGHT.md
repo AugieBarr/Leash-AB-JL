@@ -22,6 +22,11 @@ is in [`RUNSHEET.md`](RUNSHEET.md).
 - Current state: **not recorded**. Target ≤ 3:00.
 - Windows: **Control Center** (browser, full-screen) + a **terminal** + the **Band
   room** tab (https://app.band.ai/chat).
+- Framing (the judge's lens — don't undersell Band): Band is **load-bearing** — it
+  is the agent event loop, `@mention` dispatch, live recruit, and the surface a
+  second framework (Aegis) joins. The in-process scope/gate/audit are the
+  *enforcement* that survives a Band outage. The line is **"Band coordinates; code
+  enforces"** — never "Band is where we log what happened."
 
 Pre-flight (green before recording):
 ```bash
@@ -30,7 +35,15 @@ colima start                                   # if docker isn't up
 docker compose up -d --wait juice-shop
 curl -s localhost:3000 | grep -q OWASP && echo "target ready"
 uv sync --extra dev
+python connect_test.py                         # expect "10/10 agents connected" before any live Band beat
 (cd aegis && mix escript.build)                # builds ./aegis/aegis
+```
+
+Rehearsal (one pass before the recorder is on — flakes surface off-camera, not on it):
+```bash
+python scripts/control_demo.py                      # APPROVE in the browser → SQLi confirmed + sealed
+python scripts/tamper_demo.py --source control-demo # expect "TAMPERED — bad signature at seq N"
+python scripts/seal_to_band_demo.py                 # the room shows "AUDIT SEALED — <hash>"
 ```
 
 The beats (one take each; trim dead air after):
@@ -43,6 +56,10 @@ On screen: the Band room tab — the Commander **recruiting the Recon Scout**, t
 **@mention handoffs** appearing. ~20–30s. *(This is the "agents coordinate through
 Band during the workflow" proof — the one beat not to skip.)*
 
+The live swarm is slow and nondeterministic, so this clip is captured **on its own**
+and intercut: it's run until it behaves, then that take is used. Essential footage —
+but separate from the single continuous spine take (Beats 3–4), which is deterministic.
+
 **Beat 2 — Cross-framework, a second runtime attests**
 ```bash
 ./aegis/aegis attest --restrict-paths /rest/products --dry-run
@@ -52,10 +69,10 @@ Elixir runtime independently re-derives the grant — cross-framework, in the ro
 
 **Beat 3 — The leash holds + the human gate** (deterministic spine)
 ```bash
-# terminal A
+# 1) terminal A — viewer first, then open the browser full-screen
 python -m viewer.viewer --engagement control-demo
-#   open http://localhost:8089/?engagement=control-demo  (full-screen)
-# terminal B
+#      open http://localhost:8089/?engagement=control-demo
+# 2) terminal B — then the paced engagement
 python scripts/control_demo.py
 ```
 On screen: the scope guard blocks `→ /ftp` (Governance Holds ticks); the gate opens
@@ -63,7 +80,7 @@ On screen: the scope guard blocks `→ /ftp` (Governance Holds ticks); the gate 
 
 **Beat 4 — The record cannot be forged**
 ```bash
-python scripts/tamper_demo.py
+python scripts/tamper_demo.py --source control-demo
 #   open http://localhost:8089/?engagement=tamper-demo
 ```
 On screen: the badge flips **VERIFIED → TAMPERED**, the bad event lights red.
@@ -121,9 +138,12 @@ Fields paste straight from [`SUBMISSION.md`](SUBMISSION.md):
 
 ---
 
-## Optional — register `leash-aegis` for a live cross-framework beat  *(Josh · 5 min)*
+## Recommended — register `leash-aegis` for a live cross-framework beat  *(Josh · 5 min)*
 
-Lets Aegis post its attestation into the **live** Band room on camera (vs the dry-run).
+Lets Aegis post its attestation into the **live** Band room on camera — strongest
+cross-framework proof. Fallback if there's no time: Beat 2's `--dry-run` plus
+`./aegis/aegis check` (live Elixir→Band auth, HTTP 200) still demonstrate a real
+separate runtime; the live in-room post is the upgrade.
 
 - A new agent `leash-aegis` registered at app.band.ai (same flow as the other ten),
   its `agent_id` + `api_key` added to `agent_config.yaml`, added to the room.
