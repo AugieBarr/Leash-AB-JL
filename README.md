@@ -93,19 +93,24 @@ Detection needs only the public key shipped in the bundle — never the private 
 
 ## Quickstart
 
+**Verify everything that needs no live target — no Docker, no Band, no API key:**
+
 ```bash
-# 1. Stand up the authorized lab target
-docker compose up -d juice-shop      # OWASP Juice Shop on http://localhost:3000
+make install      # uv sync --extra dev
+make proof        # ruff + the full governance suite + the 1000-job concurrency-cap benchmark
+```
 
-# 2. Python env (uv)
-uv sync --extra dev
+`make proof` proves the governance, crypto (incl. tamper + truncation detection), scope-guard, gate/kill-switch, and scale claims in a bare checkout. The **only** thing that needs a live target or Band is the swarm actually exploiting Juice Shop. Full operator guide: **[`docs/RUNBOOK.md`](docs/RUNBOOK.md)** (`make help` lists every entrypoint).
 
-# 3. Governance tests (offline — no Band, no API key needed)
-uv run pytest -v
+```bash
+# Deterministic governed demo against the real target (Docker; still no Band, no LLM)
+make demo         # juice-shop up → governed pipeline → verify the sealed bundle offline
 
-# 4. Band credentials (per agent, registered once at app.band.ai)
-cp env.example .env                  # then fill ANTHROPIC_API_KEY
+# Live LLM-driven Band swarm (needs ANTHROPIC_API_KEY + the 8 agents registered)
+cp env.example .env                              # then fill ANTHROPIC_API_KEY
 cp agent_config.example.yaml agent_config.yaml   # then fill agent_id + api_key per agent
+make boot-check                                  # connect all 8, expect 8/8
+make viewer  &  make live                        # Control Center + the swarm; see RUNBOOK
 ```
 
 `.env` and `agent_config.yaml` are gitignored — secrets never get committed.
@@ -138,14 +143,16 @@ Day-3 build. **Verified end-to-end against live OWASP Juice Shop:**
 - **Kill-switch is real, not a prompt** — `Engagement.halt()` makes every offensive tool refuse in-process and audits the refusal; the Commander's `issue_kill_switch` tool engages it; [`swarm/kill_switch.py`](swarm/kill_switch.py) ejects the swarm from the room Band-side (verified live: removed 5 specialists, kept the Commander).
 - The **Reporter** emits a real deliverable ([report.md](agents/agent_tools.py)) — executive summary, severity rollup, findings table, and an audit attestation block (event count, chain tail, Ed25519 public key, offline verify command).
 
-Reproduction — with Juice Shop on `localhost:3000`:
+Reproduction — the governance/crypto/scale proofs need **no target** (`make proof`); the deterministic exploit pipeline needs Juice Shop on `localhost:3000`:
 
 ```bash
+make demo     # docker compose up -d juice-shop → scripts/offline_demo.py → verify the sealed bundle
+# equivalently, by hand:
 python scripts/offline_demo.py
 python -m governance.verify engagements/offline-demo/offline-demo_bundle.tar.gz
 ```
 
-The remaining piece is the live LLM-driven swarm narrating this flow through a Band room (`python -m swarm.launcher`), which needs `ANTHROPIC_API_KEY` in `.env`. The day-by-day to submission (Jun 19) lives in [`docs/BUILD_PLAN.md`](docs/BUILD_PLAN.md).
+The remaining piece is the live LLM-driven swarm narrating this flow through a Band room (`make live` / `python -m swarm.launcher`), which needs `ANTHROPIC_API_KEY` in `.env` and the eight agents registered. The full operator runbook (target-free proof → governed demo → live swarm, with what to capture for the demo video) is **[`docs/RUNBOOK.md`](docs/RUNBOOK.md)**; the day-by-day to submission lives in [`docs/BUILD_PLAN.md`](docs/BUILD_PLAN.md).
 
 ## License
 
