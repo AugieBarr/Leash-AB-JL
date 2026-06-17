@@ -78,8 +78,6 @@ def recon_tools(eng):
                 except Exception as e:  # network hiccup on one path shouldn't abort the crawl
                     found.append({"path": path, "error": str(e)[:80]})
 
-        await eng.log("tool_result", tool="crawl_target", found=found)
-
         # Classify the surface from what actually answered (HTTP < 400), so the
         # Commander recruits a specialist only for a class recon really observed —
         # the discovery->recruit loop is driven by live signals, not a static list.
