@@ -96,7 +96,7 @@ def ${name}_tools(eng, *, gate_timeout: float = 600.0, gate_poll: float = 0.4):
         """$docstring"""
 
         path: str = Field(
-            default="$target_path",
+            default=$target_path_lit,
             description="In-scope endpoint path to test, e.g. $target_path",
         )
 
