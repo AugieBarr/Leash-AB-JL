@@ -25,3 +25,6 @@ uv.lock.bak
 
 # Claude Code agent/session artifacts (created by the claude_sdk adapter at runtime)
 .claude/
+
+# scaffolder-generated wiring patches (runtime artifacts)
+tools/scaffold_out/
