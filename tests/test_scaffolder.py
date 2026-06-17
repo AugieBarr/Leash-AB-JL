@@ -178,3 +178,31 @@ def test_refuses_to_overwrite_existing_tool(capsys):
                           "--marker", "m", "--description", "Confirm sqli on an endpoint."])
     assert rc == 1
     assert "already exists" in capsys.readouterr().err
+
+
+def test_marker_injection_is_neutralized():
+    # A crafted marker that tries to break out of the string literal must NOT inject
+    # executable code — json.dumps keeps it inside _MARKER as data.
+    evil = 'm"; import os; PWNED = os.getcwd(); _x = "'
+    src = scaffolder.render_module(_spec(marker=evil))
+    tree = ast.parse(src)  # still a valid, parseable module
+    top_assigns = {t.id for n in tree.body if isinstance(n, ast.Assign)
+                   for t in n.targets if isinstance(t, ast.Name)}
+    assert "PWNED" not in top_assigns
+    imported = {a.name for n in tree.body if isinstance(n, ast.Import) for a in n.names}
+    assert "os" not in imported
+
+
+def test_breakout_in_description_is_rejected():
+    with pytest.raises(SystemExit):
+        scaffolder.main(["--name", "demo", "--owasp-class", "A01", "--target-path", "/x",
+                         "--marker", "m", "--description", 'x"; import os; os.system("id"); "'])
+
+
+def test_legit_braced_payload_is_valid():
+    # A real GraphQL probe payload contains braces — it must scaffold a valid module
+    # (json-encoded into _PAYLOAD), never an f-string injection.
+    src = scaffolder.render_module(_spec(name="graphql_introspection", finding_type="graphql_introspection",
+                                         marker="__schema", payload="{__schema{types{name}}}"))
+    ast.parse(src)
+    assert '_PAYLOAD = "{__schema{types{name}}}"' in src
