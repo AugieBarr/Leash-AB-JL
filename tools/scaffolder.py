@@ -194,8 +194,14 @@ def _validate(args: argparse.Namespace) -> None:
     if args.confirm_condition == "marker_in_body" and not args.marker:
         raise SystemExit("--confirm-condition marker_in_body requires a non-empty --marker")
     target = args.target_path if args.target_path.startswith("/") else "/" + args.target_path
-    if not target.startswith("/"):
-        raise SystemExit("--target-path must resolve to an absolute path")
+    if not _PATH_OK.match(target):
+        raise SystemExit(f"--target-path may only contain path characters; got {args.target_path!r}")
+    # --description and --owasp-class land in docstrings / f-strings; refuse any
+    # character that could break out of them (the marker/payload are json-encoded
+    # into literals instead, so those may contain quotes/braces freely).
+    for flag, value in (("--description", args.description), ("--owasp-class", args.owasp_class)):
+        if _BREAKOUT.search(value):
+            raise SystemExit(f"{flag} may not contain quotes, backslashes, braces, $ or newlines: {value!r}")
 
 
 def _camel(name: str) -> str:
