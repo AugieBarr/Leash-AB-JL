@@ -114,6 +114,11 @@ def exposure_tools(eng, *, gate_timeout: float = 600.0, gate_poll: float = 0.4):
                 f"[VULNERABLE] {base} exposes sensitive data in its response — pattern hits: "
                 f"{summary} (raw values redacted). OWASP A01/A04 sensitive-data exposure."
             )
+        if hits and not ok_status:
+            return (
+                f"[not confirmed] {base}: sensitive-shaped patterns appeared only in a non-success "
+                f"response (HTTP {resp.status_code}) — treated as an error body, not a leak. No finding."
+            )
         return (
             f"[not confirmed] {base}: no sensitive-data patterns found in the response "
             f"(HTTP {resp.status_code})."
