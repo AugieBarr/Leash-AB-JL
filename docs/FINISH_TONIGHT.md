@@ -62,10 +62,13 @@ but separate from the single continuous spine take (Beats 3–4), which is deter
 
 **Beat 2 — Cross-framework, a second runtime attests**
 ```bash
-./aegis/aegis attest --restrict-paths /rest/products --dry-run
+./aegis/aegis attest --restrict-paths /rest/products --dry-run   # Elixir re-derivation + attestation
+export AEGIS_API_KEY=$(.venv/bin/python -c "from band.config import load_agent_config; print(load_agent_config('leash-auditor')[1])")
+./aegis/aegis check                                              # live Elixir → Band auth, HTTP 200
 ```
-On screen: the `🛡️ AEGIS (Elixir/OTP) attests …` line. Voiceover: *a separate
-Elixir runtime independently re-derives the grant — cross-framework, in the room.*
+On screen: the `🛡️ AEGIS (Elixir/OTP) attests …` line, then `✓ authenticated to Band …
+HTTP 200`. Voiceover: *a separate Elixir runtime — zero shared code with the Python SDK
+— re-derives the grant and authenticates to Band live. Cross-framework, for real.*
 
 **Beat 3 — The leash holds + the human gate** (deterministic spine)
 ```bash
@@ -138,12 +141,14 @@ Fields paste straight from [`SUBMISSION.md`](SUBMISSION.md):
 
 ---
 
-## Recommended — register `leash-aegis` for a live cross-framework beat  *(Josh · 5 min)*
+## Note — `leash-aegis` dedicated handle needs a Band plan upgrade
 
-Lets Aegis post its attestation into the **live** Band room on camera — strongest
-cross-framework proof. Fallback if there's no time: Beat 2's `--dry-run` plus
-`./aegis/aegis check` (live Elixir→Band auth, HTTP 200) still demonstrate a real
-separate runtime; the live in-room post is the upgrade.
+A dedicated `leash-aegis` Band identity would let Aegis post its attestation into the
+live room under its own name. Band's remote-agent limit is **reached (10/10) on the
+current plan** — registering an 11th requires a paid upgrade. This is cosmetic: Beat 2's
+`--dry-run` + `./aegis/aegis check` (live Elixir→Band auth, HTTP 200) already prove a
+real, separate Elixir runtime coordinating with Band. If the plan is upgraded later,
+`leash-aegis` registers via the same flow as the other ten and posts live in-room.
 
 - A new agent `leash-aegis` registered at app.band.ai (same flow as the other ten),
   its `agent_id` + `api_key` added to `agent_config.yaml`, added to the room.
