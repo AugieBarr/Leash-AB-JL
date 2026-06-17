@@ -86,7 +86,7 @@ Band, multi-agent, cross-framework, Python, Elixir, cybersecurity, offensive-sec
 - [x] Cover image — `docs/img/cover.png` ready (title already on it)
 - [ ] Video (≤3:00, RUNSHEET ready) — **Augie/Josh**
 - [ ] Slide deck (`docs/slides.md` → export) — **either**
-- [ ] Repo public — **Augie**
+- [x] Repo public — confirmed PUBLIC 2026-06-16 (gh repo view → "PUBLIC")
 - [ ] Hosted video link → Demo Platform / Application URL — **Josh**
 - [ ] (optional, strengthens demo) Register `leash-aegis` on Band so Aegis posts its attestation into the live room — **Josh**
 ```
