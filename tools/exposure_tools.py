@@ -87,7 +87,11 @@ def exposure_tools(eng, *, gate_timeout: float = 600.0, gate_poll: float = 0.4):
         # Count hits per type; NEVER record the matched values (responsible DLP test).
         hits = {name: len(rx.findall(body)) for name, rx in _PATTERNS.items()}
         hits = {name: n for name, n in hits.items() if n}
-        confirmed = bool(hits)
+        # Only a SUCCESS response is real exposure: a 403/500 error page can carry an
+        # email or the word "patient" in its body or a stack trace — that is an error,
+        # not a leak, and must not become a sensitive_data_exposure finding.
+        ok_status = resp.status_code < 400
+        confirmed = bool(hits) and ok_status
 
         await eng.log(
             "tool_result",
