@@ -2,7 +2,7 @@
 
 **A governed platform for offensive-security agent swarms on [Band](https://band.ai).** Spin up specialized test agents — SQL-injection, XSS, auth-bypass, prompt-injection, PII/PHI-exposure — and Band coordinates them: recruited on discovery, handoffs by `@mention`, the sealed audit hash posted back into the room, a human holding the kill-switch. **Every agent you add inherits the same leash** — fail-closed scope, a human approval gate, a tamper-evident audit chain — so extending the swarm with new offense never means loosening control.
 
-Point it at a target and a **Commander runs the engagement inside a Band room**: it recruits a Recon Scout, and the moment recon surfaces an attack surface it pulls the matching specialist *into the room live*. Coordination runs through Band — every recruit and handoff is a room event the human watches — and so does the **proof**: when the Auditor seals the run, the tamper-evident chain hash is posted into the room as a code-dispatched event, so the record lands where the swarm lives. Beneath that, a **fail-closed scope leash, an in-tool human approval gate, and a tamper-evident Ed25519 audit chain** make the swarm safe to run unsupervised — and because that chain is in-process, it holds even if Band drops. **Band is the coordination plane; the governance signal lands there too.**
+Point it at a target and a **Commander runs the engagement inside a Band room**: it recruits a Recon Scout, and the moment recon surfaces an attack surface it pulls the matching specialist *into the room live*. Agent coordination runs through Band — every recruit and handoff is a room event the human watches — and so does the **proof**: when the Auditor seals the run, the tamper-evident chain hash is posted into the room as a code-dispatched event, so the record lands where the swarm lives. Beneath that, a **fail-closed scope leash, an in-tool human approval gate, and a tamper-evident Ed25519 audit chain** make the swarm safe to run unsupervised — and because that chain is in-process, it holds even if Band drops. **Band is the coordination plane; the governance signal lands there too.**
 
 > Built for the **Band of Agents Hackathon** (lablab.ai, Jun 2026) by Team Roan — Josh Langsam ([@joshualangsam-a11y](https://github.com/joshualangsam-a11y)) & Augie Barreirinhas ([@AugieBarr](https://github.com/AugieBarr)).
 
@@ -66,6 +66,22 @@ A fair challenge: *isn't Band just a chat layer you could swap for Slack or Redi
 - **The room is the live operator surface.** Agent reasoning and every tool call stream into it (`Emit.THOUGHTS | EXECUTION`); a human supervises the swarm *thinking and acting in real time*, in one shared place — a view the audit-only dashboard cannot reconstruct.
 
 **And where Band is deliberately _not_ the mechanism:** every safety guarantee — the scope guard, the human approval gate, the kill-switch refusal, the Ed25519 audit chain — is in-process Python with **zero Band-SDK imports** ([`swarm/control_channel.py`](swarm/control_channel.py) states it outright), so it holds through a Band outage, a network partition, or a prompt-injected agent. The Band-side kill-switch eject and the seal-into-room broadcast are visible *complements* to the in-process controls, never their enforcement. Band coordinates and makes the swarm visible; Python enforces, unconditionally. That separation is the design: **you cannot weaken a control by interfering with the coordination plane.**
+
+---
+
+## Cross-framework: a second runtime in the same room
+
+The swarm isn't all Python. **Aegis** ([`aegis/`](aegis/)) is a second-framework agent written in **Elixir/OTP** that joins the same Band room and **shares no code with the Python `band-sdk`** — it's built on OTP built-ins alone (`:httpc`, `:ssl`, `:json`, `:crypto`), zero hex dependencies. The only thing the two runtimes share is the Band room.
+
+Its job is a real governance function, not a hello-world. When the Python ScopeWarden narrows a specialist's capability (`parent ∩ restriction`), Aegis **independently re-derives that same host/port/path intersection in Elixir** and posts the verdict into the room as a Band event — a `tool_result` on agreement, an `error` + halt signal on a mismatch or an empty-scope deny. The two implementations agree by producing an **identical canonical scope and SHA-256**; if they ever diverge, the attestation goes red. (Fittingly, the Python [`governance/capability.py`](governance/capability.py) is itself a clean-room port of `Hermes.Themis` — Elixir — so Aegis brings the original runtime back into the room as a live cross-check.)
+
+```bash
+cd aegis && mix test                                       # 14 tests: the Elixir algebra matches the Python evaluator
+./aegis attest --restrict-paths /rest/products --dry-run   # offline re-derivation (no key, no network)
+./aegis check                                              # read-only: this Elixir runtime authenticates to Band
+```
+
+**Verified live:** the Elixir runtime authenticates to Band over the REST API (`HTTP 200`); the attestation flow (attest / match / mismatch / deny) is covered by 14 ExUnit tests. Two languages, two runtimes, one coordination layer — the cross-framework claim made literal.
 
 ---
 
