@@ -96,12 +96,15 @@ Fallback if Band flakes: `python -m governance.verify engagements/control-demo/c
 
 ---
 
-## Step 3 — Video hosting  *(Josh · 5 min)*
+## Step 3 — Video: export an MP4 (the form wants a FILE, not a link)  *(Josh · 5 min)*
 
-- A **Loom** upload (or YouTube **unlisted**) gives a share link.
-- That one link serves BOTH the **Video Presentation** field and the **Application
-  URL / Demo Platform** fields.
-- Done when: the link plays in an incognito window.
+- **Confirmed against the live form (2026-06-16):** the **Video Presentation** field on
+  Step 2 is a direct **file upload**, not a URL paste — so export the recording to an
+  **`.mp4`** (most editors: Share → Export → 1080p). Keep the file reasonably small.
+- A **Loom / YouTube unlisted** link is still worth having: it most likely feeds the
+  **Application URL / Demo Platform** field on the form's Step 3 (that step is gated
+  behind the Step-2 uploads, so it couldn't be inspected yet — confirm when you reach it).
+- Done when: a local `leash-demo.mp4` exists and plays.
 
 ---
 
