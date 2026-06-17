@@ -31,6 +31,11 @@ from string import Template
 # are refused — responsible framing is a precondition, not a suggestion.
 _BANNED_WORDS = ("attacker", "exploiter", "exfiltrator", "pwner", "backdoor", "stealer", "weapon", "malware")
 _SLUG = re.compile(r"^[a-z][a-z0-9_]*$")
+# Free text that lands in a docstring / f-string / comment must not be able to break
+# out of it. (Literal positions — _MARKER / _PAYLOAD — are json.dumps-encoded instead,
+# so a payload may freely contain quotes and braces.)
+_BREAKOUT = re.compile(r'["\\${}\n\r`]')
+_PATH_OK = re.compile(r"^[A-Za-z0-9_\-./?=&%:+~]*$")
 _CONFIRM_MODES = ("marker_in_body", "status_5xx", "status_delta")
 _SEVERITIES = ("critical", "high", "medium", "low")
 _BENIGN = "leashBENIGN0"  # baseline marker for the status_delta differential
